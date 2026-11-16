@@ -1,0 +1,12 @@
+# plugin eval output (reports and per-run results)
+plugin/evals/results/
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Cowork mirrors delivered files here
+Claude outputs/

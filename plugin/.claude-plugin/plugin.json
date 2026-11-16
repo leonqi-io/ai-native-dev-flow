@@ -1,0 +1,11 @@
+{
+  "name": "flow",
+  "displayName": "AI-native dev flow",
+  "version": "3.0.0",
+  "description": "A development flow for small projects: intent, spec, validation and plan approved by the owner's commit on main, red tests first, review in a fresh session, one way in for findings.",
+  "author": {
+    "name": "Leon Qi"
+  },
+  "license": "UNLICENSED",
+  "keywords": ["sdlc", "spec-driven", "workflow"]
+}

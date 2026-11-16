@@ -1,0 +1,7 @@
+{
+  "test_scope": ["tests/**"],
+  "deploys": false,
+  "pull_request": false,
+  "high_risk_paths": [],
+  "non_product_paths": []
+}
