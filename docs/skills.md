@@ -42,7 +42,7 @@
 <!-- generated:phrasings:start -->
 | skill | 保底启动 | 测试通过的说法 | 用例 | 最近一次结果 |
 |---|---|---|---|---|
-| close | `/flow:close` | （还没有通过的记录） | `plugin/evals/pick-close/` | 未跑 |
+| close | `/flow:close` | 「验收过了，收尾准备合并」 | `plugin/evals/pick-close/` | 通过 |
 | continue | `/flow:continue` | （还没有通过的记录） | `plugin/evals/pick-continue/` | 未跑 |
 | implement | `/flow:implement` | （还没有通过的记录） | `plugin/evals/pick-implement/` | 未跑 |
 | intent | `/flow:intent` | （还没有通过的记录） | `plugin/evals/pick-intent/` | 未跑 |
@@ -54,7 +54,7 @@
 | todo | `/flow:todo` | （还没有通过的记录） | `plugin/evals/pick-todo/` | 未跑 |
 | validate | `/flow:validate` | （还没有通过的记录） | `plugin/evals/pick-validate/` | 未跑 |
 
-生成依据：还没有跑过插件测试。
+生成依据：`plugin/evals/results/2026-11-17T17-04-02-937Z/`，Claude Code 2.1.326。
 <!-- generated:phrasings:end -->
 
 每个 skill 只测一种说法，因为这套流程主要是我们自己用，忘了可以来查，查不到还有 `/flow:<名字>`。
