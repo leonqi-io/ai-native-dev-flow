@@ -6,7 +6,7 @@
 
 ## 试点开始之前
 
-- [ ] **飞猫的立项 session。** 对着今天的实际情况复查需求和设计，重新讨论有没有更好的部署方式，然后写 mission.md、roadmap.md、tech-stack.md。目前的状态在 `flightcat.ca-redesign/flightcat.ca_V3/dev/ARCHITECTURE.md`。
+- [✅] **飞猫的立项 session。** 对着今天的实际情况复查需求和设计，重新讨论有没有更好的部署方式，然后写 mission.md、roadmap.md、tech-stack.md。在网站自己的仓 `flightcat-site` 里做（2026-11-16 从内容仓 `flightcat` 分出）；旧的 V3 设定在它的 `references/` 下。
 - [ ] **自测。** `bash tools/selftest.sh` 在本机通过。
 - [ ] **插件格式检查。** `claude plugin validate plugin`。
 - [ ] **把用户级的两段贴进 `~/.claude/CLAUDE.md`。** `plugin/templates/user/` 下的规范段和模型表。
@@ -34,4 +34,6 @@ python3 tools/skill_list.py
 
 ## 试点中发现、还没处理的流程问题
 
-（空）
+- 2026-11-16 · Leon（飞猫立项 session）· `tech-stack.md` 名不副实：立项写出来的是一份决定记录（部署方式、三条流程在哪跑、内容怎么进 main、谁批准、固定页面类型清单、未定事项），和技术栈基本无关。要裁定：这份文件改名，还是拆成「技术栈」和「项目级决定」两份；项目级决定现在没有别的存放处。涉及 `docs/flow.md` 立项一章、`plugin/templates/project/tech-stack.md`、`setup-project` skill、`check_shape.py` 的 `tech-stack` 一类。实例：`flightcat-site` 的 `specs/tech-stack.md`（`setup` 分支）。
+- 2026-11-17 · Leon（飞猫立项 session）· 「部署凭据放在 agent 够不到的地方、由合并触发部署」写成对每个要部署项目的硬要求，太严。Leon 的意见：部署方式应按项目具体分析，立项 skill 里不该给硬要求。实例：飞猫的备用发布是 agent skill 在 Leon 已登录的浏览器里经 cPanel 文件管理器上传，合并不再自动发布；当时由 session 临场判断接受，并把偏离写进部署一节。要改的地方：`docs/flow.md` 第 275 行（「只有一条硬要求」）、`setup-project` skill 第 3 步的 "One hard requirement"、模板 `tech-stack.md` 的 Deployment 段。连带要看：第 279 行「合并就是发布批准」和小改动合并提示里的「Merging publishes to production」都以合并触发部署为前提，改成按项目分析后这两处要说明不成立时怎么办。
+- 2026-11-17 · Leon（飞猫立项 session）· `accept.py setup` 只把固定的几个文件（mission、tech-stack、roadmap、CLAUDE.md、REVIEW.md、`.claude/` 下的文件）提交进 `main`；`setup` 分支上的其他文件不带过去，也不提示。实例：飞猫立项时按 owner 要求写的 mockups 盘点 `references/mockups/README.md` 留在了 `setup` 分支上，而 `main` 上的 CLAUDE.md 有一行指向它，验收后成了空指针，要 owner 另外手工补提交。要裁定：验收时列出分支上没带进 `main` 的文件并提示；或者把立项分支上的非产品路径文件一并带上；或者在 `setup-project` skill 里写明立项时写的其他文件怎么进 `main`。涉及 `plugin/scripts/accept.py`（`what == "setup"` 一支，第 37 行起）和 `setup-project` skill 第 5、6 步。
