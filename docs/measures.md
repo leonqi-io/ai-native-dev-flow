@@ -14,7 +14,7 @@
 | 小改动的界线要不要收紧 | 被后来的新 session 评审判为「行为变了」的小改动有几个 | Approval log 里 `small-change read … behaviour changed: yes` 的条数 |
 | verifier 要不要提到 Opus | 上一行那些小改动里，verifier 当时没报「行为变了」的有几个 | 对照那个小改动 validation.md 的「Review」一节。出现一次，就在用户级设 `CLAUDE_CODE_SUBAGENT_MODEL=opus` |
 | 要不要把「禁止用 shell 改写文件」的钩子加进核心 | 有没有 session 用 shell 写产品文件、绕过了存在检查 | 手工。出现一次就加 |
-| 正常档要不要也用一次点击确认 | 小改动的两次点击用下来顺不顺；`ask` 在自动批准模式下的表现（试点第一天的实测） | 手工 |
+| 批准句和点击各自留不留 | 批准句有没有误触发（一句普通的话被当成批准）或漏触发；小改动的两次点击用下来顺不顺；`ask` 在各权限模式下的表现 | 手工。误触发出现一次，就把那一句换成更长的 |
 | 配置是不是在变差 | 一次通过率（实现后第一次评审就没有 Important）；每个改动的修复轮数；同一个错重复出现的次数 | Approval log 里 review 行的条数和 Important 数；CLAUDE.md 里两次即记的新增行 |
 
 ## 每个改动收尾时记的一行

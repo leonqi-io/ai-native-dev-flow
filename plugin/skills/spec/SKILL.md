@@ -37,7 +37,7 @@ when_to_use: 「intent 已经接受了，开始写 spec」「写需求和设计�
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_shape.py" validation specs/<folder>/validation.md
    ```
 
-8. **Hand over.** The owner rules the open concerns, reads `validation.md` §0 (and §3 when present), and accepts the pair by his commit. Give him the line the state report prints (`accept.py spec`). It refuses while an R-ID is cited nowhere in §0, §1 or §2.
+8. **Hand over.** The owner rules the open concerns, reads `validation.md` §0 (and §3 when present), and accepts the pair by typing **「接受 spec」** as a chat message of its own. The plugin's hook then runs `accept.py spec` and its result reaches you as context. It refuses while an R-ID is cited nowhere in §0, §1 or §2. If nothing comes back after his sentence, the plugin's hooks are not running in this session: give him the line the state report prints, for his own terminal.
 
 ## Rules
 - Speak to the owner in the owner's language; where the owner is not the developer, her questions are few, in her words, in one batch.

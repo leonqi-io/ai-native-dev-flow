@@ -1,5 +1,5 @@
 {
-  "description": "flow: approval records on main, presence checks, the test-file lock, the state report at session start",
+  "description": "flow: approval records on main, the owner's approval sentences, presence checks, the test-file lock, the state report at session start",
   "hooks": {
     "SessionStart": [
       {
@@ -10,6 +10,18 @@
             "command": "python3",
             "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/state.py", "--hook"],
             "timeout": 20
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_user_prompt.py"],
+            "timeout": 120
           }
         ]
       }
@@ -33,6 +45,17 @@
             "type": "command",
             "command": "python3",
             "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_pretool_write.py"],
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "CronCreate|ScheduleWakeup|SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_user_prompt.py"],
             "timeout": 20
           }
         ]

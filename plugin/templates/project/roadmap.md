@@ -2,7 +2,7 @@
 
 Status: <where the work stands and what comes next, in one line — updated each time a change is closed>
 
-<!-- Written once per project, at project setup; approved by the owner's commit into `main`.
+<!-- Written once per project, at project setup; approved by the owner (「接受立项」).
 The dated folders under specs/ are the index of every change; this file holds only what is planned,
 what is undecided and what is knowingly left. -->
 

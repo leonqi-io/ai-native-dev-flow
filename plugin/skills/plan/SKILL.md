@@ -23,7 +23,7 @@ when_to_use: 「spec 和 validation 批了，出实现计划」「写 plan」「
 
 5. **High-risk tier, in addition:**
    - the plan names the revert path (a project whose bad release is acceptable names the path; no rehearsal);
-   - before the owner commits, the plan is read once more by a **fresh session** — tell the owner to open one and say "二读这份 plan" (the `review` skill).
+   - before the owner approves, the plan is read once more by a **fresh session** — tell the owner to open one and say "二读这份 plan" (the `review` skill).
 
 6. **Check and commit on the working branch.**
 
@@ -31,7 +31,7 @@ when_to_use: 「spec 和 validation 批了，出实现计划」「写 plan」「
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_shape.py" plan specs/<folder>/plan.md
    ```
 
-7. **Hand over.** The owner reads "For the owner", rules its points, and approves by his commit. Give him the line the state report prints (`accept.py plan`).
+7. **Hand over.** The owner reads "For the owner", rules its points, and approves by typing **「批准 plan」** as a chat message of its own. The plugin's hook then runs `accept.py plan` and its result reaches you as context. If nothing comes back after his sentence, the plugin's hooks are not running in this session: give him the line the state report prints, for his own terminal.
 
 ## Rules
 - Speak to the owner in the owner's language.

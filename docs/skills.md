@@ -10,18 +10,32 @@
 | skill | 阶段 | 什么时候用 | 做什么 | 结束时停在哪 |
 |---|---|---|---|---|
 | continue | 入口 | 想接着做，不确定到哪一步了 | 跑状态脚本，说现在在哪个阶段，加载那个阶段的 skill | 接到对应的 skill |
-| setup-project | 立项 | 一个仓库第一次用这套流程 | 和 owner 写 mission、tech-stack、roadmap，以及项目的 CLAUDE.md、REVIEW.md、`.claude/flow.json`；跑问答 | 给 owner 一行提交命令 |
-| intent | Plan | 想做一个改动，不是小改动 | 定档位，建文件夹和分支，起草 intent.md，跑问答 | 给 owner 一行提交命令（intent 接受） |
-| spec | Design | intent 已接受 | researcher 查事实；写 spec.md 和 validation.md；跑问答；试跑每条命令；R-ID 覆盖检查 | 给 owner 一行提交命令（spec 接受） |
-| plan | Build | spec 已接受 | 在 plan mode 里写 plan.md；高风险档提示另开 session 二读 | 给 owner 一行提交命令（plan 批准） |
+| setup-project | 立项 | 一个仓库第一次用这套流程 | 和 owner 写 mission、decisions、roadmap，以及项目的 CLAUDE.md、REVIEW.md、`.claude/flow.json`；跑问答；把要进 `main` 的文件清单给 owner 看 | 请 owner 说「接受立项」 |
+| intent | Plan | 想做一个改动，不是小改动 | 定档位，同步 `main`，建文件夹和分支，起草 intent.md，跑问答 | 请 owner 说「接受 intent」 |
+| spec | Design | intent 已接受 | researcher 查事实；写 spec.md 和 validation.md；跑问答；试跑每条命令；R-ID 覆盖检查 | 请 owner 说「接受 spec」 |
+| plan | Build | spec 已接受 | 在 plan mode 里写 plan.md；高风险档提示另开 session 二读 | 请 owner 说「批准 plan」 |
 | implement | Build、Test | plan 已批准；或评审意见回来了 | 红测试并提交 `red-run.txt`；实现到绿；跑 code-reviewer 和 verifier；贴出绿的输出 | 提示另开 session 评审 |
 | small-change | 全程（简化） | 错字、文案、配置值、依赖升级、单处修复 | 起草短 intent；第一次点击；写 validation、改、验证、评审，一路不停 | 第二次点击（合并提示） |
 | review | Deploy | 分支可以评审了；修完要复核；高风险档 plan 要二读 | 新 session 读 REVIEW.md，三遍加固定检查，出报告，在 Approval log 里记一行 | 有 Important 就回实现的 session；没有就进验收 |
 | validate | Deploy | 评审过了，owner 要亲自验收 | 把 §0 一步一步递给 owner，每步一个命令块加预期结果，记录结果 | 全过就进收尾 |
-| close | Deploy | 验收过了 | 处理遗留项，更新 roadmap 状态行，跑收尾检查 | 把合并交给 owner（他的一行命令，或 PR） |
+| close | Deploy | 验收过了 | 处理遗留项，更新 roadmap 状态行，跑收尾检查；开 PR 的项目推分支、开 PR | 请 owner 说「确认合并」 |
 | todo | Maintain | 发现一个不属于当前改动的问题；或要过一遍待办 | 往 roadmap 的「To do」加一行；逐行分流（现在修、排期、不做） | 说还剩几行未决 |
 
-没有一个 skill 设成只能由人启动。会移动 `main` 的几处都由固定脚本加确认提示把关。
+没有一个 skill 设成只能由人启动。会移动 `main` 的几处都由固定脚本把关：owner 的批准句，或者小改动的确认提示。
+
+## 批准时说的五句话
+
+这五句不是 skill，不经过模型：整条消息只有这句话时，钩子直接运行脚本。空格和标点不计，词序可以反过来。多一个字就是普通消息。
+
+| 批准点 | 说 | 效果 |
+|---|---|---|
+| 立项验收 | `接受立项` | `setup` 整条分支进 `main`，切到 `main`，删 `setup`（在别的分支上：只提交项目级文件） |
+| intent 接受 | `接受 intent` | intent.md 进 `main` |
+| spec 接受 | `接受 spec` | spec.md 和 validation.md 进 `main` |
+| plan 批准 | `批准 plan` | plan.md 进 `main` |
+| 验收和合并 | `确认合并` | 收尾检查，合并（开 PR 的项目合并 PR），推送，切到 `main`，删分支 |
+
+说了没反应，就是这个 session 里插件的钩子没在跑：在自己的终端里粘贴状态报告给出的那一行。细节见 `docs/hooks-and-scripts.md`。
 
 ## 测试通过的说法
 

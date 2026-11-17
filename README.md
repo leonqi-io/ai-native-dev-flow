@@ -24,12 +24,12 @@ claude --plugin-dir /path/to/ai-native-dev-flow/plugin
 
 云端 session 和 Cowork 能不能从私有仓库加载：未核实，见 `docs/pilot.md`。
 
-需要：Python 3.9 以上、Git。插件 eval 需要 Claude Code v2.1.269 以上。
+需要：Python 3.9 以上、Git。开 PR 的项目还需要 GitHub CLI（`gh`，已登录）。插件 eval 需要 Claude Code v2.1.269 以上。
 
 ## 一个项目怎么开始用
 
 1. 在那个项目里说「给这个项目立项」（或 `/flow:setup-project`）。它会写三份项目级文件和 `.claude/flow.json`。
-2. 在自己的终端里粘贴它给出的那一行，把这些文件提交进 `main`。
+2. 读完它列出的文件清单，在对话里单独发一句「接受立项」，这些文件就进了 `main`。之后每个批准点都是一句话，见 `docs/skills.md`。
 3. 之后每个改动从 intent 开始（「我想加一个功能：……」），小改动说「这个按小改动处理：……」。不记得到哪一步了就说「继续」。
 
 仓库里没有 `.claude/flow.json` 时，插件的钩子什么都不做，所以插件可以在用户级启用。

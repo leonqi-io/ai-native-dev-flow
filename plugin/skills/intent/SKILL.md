@@ -15,9 +15,10 @@ when_to_use: 「我想加一个功能：……」「我想做一个改动：…�
    - **high-risk** — the change touches any of: an irreversible data change · credentials or personal data · public release or deploy configuration · a stored or emitted data shape.
    - **normal** — everything else.
 
-3. **Folder and branch.** The folder is `specs/<YYYY-MM-DD>-<slug>/` (today's local date); the working branch has the folder's name:
+3. **Folder and branch.** The folder is `specs/<YYYY-MM-DD>-<slug>/` (today's local date); the working branch has the folder's name. Bring `main` up to date first (it does nothing where there is no origin):
 
    ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sync_main.py"
    git switch -c <YYYY-MM-DD>-<slug> main
    ```
 
@@ -25,7 +26,7 @@ when_to_use: 「我想加一个功能：……」「我想做一个改动：…�
 
 5. **Question loop.** Follow `${CLAUDE_PLUGIN_ROOT}/reference/question-loop.md`. In this stage ask what, why, for whom, constraints and out of scope — never how. Look a scope question up in `specs/mission.md` before asking it.
 
-6. **Mission conflict.** If the intent asks for something `specs/mission.md` says the product does not do, stop and say so: the owner amends the mission first (his commit), then the intent is accepted. No intent goes out of scope silently.
+6. **Mission conflict.** If the intent asks for something `specs/mission.md` says the product does not do, stop and say so: the owner amends the mission first (the amended file is committed on this branch and he types「接受立项」, which here commits the project files only), then the intent is accepted. No intent goes out of scope silently.
 
 7. **Check and commit on the working branch.**
 
@@ -33,7 +34,7 @@ when_to_use: 「我想加一个功能：……」「我想做一个改动：…�
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_shape.py" intent specs/<folder>/intent.md
    ```
 
-8. **Hand over.** The owner reads `intent.md` and accepts it by his commit. Give him the line the state report prints (`accept.py intent`) to paste into his own terminal. You cannot run it for him in this tier.
+8. **Hand over.** The owner reads `intent.md` and accepts it by typing **「接受 intent」** as a chat message of its own. The plugin's hook then runs `accept.py intent` and its result reaches you as context; when it says "intent accepted", carry on. You cannot run it for him in this tier. If nothing comes back after his sentence, the plugin's hooks are not running in this session: give him the line the state report prints, for his own terminal.
 
 9. **If the intent came from a To do line:** once it is accepted, remove the line (the owner confirms with one click):
 
@@ -44,5 +45,5 @@ when_to_use: 「我想加一个功能：……」「我想做一个改动：…�
 ## Rules
 - Speak to the owner in the owner's language.
 - No `Status` field: on the branch the intent is a draft, on `main` it is accepted.
-- You commit only on the working branch. `main` moves by the owner's act.
+- You commit only on the working branch. `main` moves by the owner's act — his sentence, never your call of the script.
 - End by saying the next step in one sentence: after "intent accepted", the spec.

@@ -2,12 +2,17 @@
 """PreToolUse hook for Bash: `main` moves only by the owner's act.
 
 Three kinds of answer:
-  deny   a git command that would move `main` — the reason names the route;
+  deny   a git command that would move `main`, and `gh pr merge` — the
+         reason names the route (the owner's approval sentence);
   ask    the three fixed scripts whose run *is* the owner's act when he
          approves the prompt (accept.py intent for a small change, merge.py
          for a small change, roadmap_edit.py);
-  allow  the plugin's read-only scripts and todo_add.py (append-only).
+  allow  the plugin's read-only scripts and `--check` runs, todo_add.py
+         (append-only) and sync_main.py (a fast-forward to origin/main).
 Everything else: no decision (the normal permission flow applies).
+
+The owner's own way to approve does not pass through this hook: he types the
+approval sentence in the chat and hook_user_prompt.py runs the script.
 
 Where the repository has no .claude/flow.json the hook does nothing.
 Limit, as in every pattern-matched block: it stops an agent stepping over an
@@ -29,20 +34,24 @@ OWN_CALL = re.compile(r"""^\s*python3?\s+(?:"([^"]+)"|'([^']+)'|(\S+))(?:\s+(.*)
 SHELL_JOIN = re.compile(r"[;&|<>`\n]|\$\(")
 ON_MAIN_VERBS = {"commit", "merge", "rebase", "reset", "revert", "cherry-pick", "am", "pull"}
 OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
+ALLOWED = {"todo_add", "sync_main"}
+GH_PR_MERGE = re.compile(r"(?:^|[\s;&|(`])gh\s+pr\s+merge\b")
 
 
 def decide(decision, reason):
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision, "permissionDecisionReason": reason}}))
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision, "permissionDecisionReason": reason}}, ensure_ascii=False))
     sys.exit(0)
 
 
 def routes():
+    sentences = "".join("「%s」" % flowlib.owner_sentence(act) for act in ("setup", "intent", "spec", "plan", "merge"))
     return (
         "In this flow `main` moves only by the owner's act; do not look for another way to run this. Routes: "
-        "an approval file (intent / spec + validation / plan) -> the owner runs `%s` in his own terminal; "
-        "a merge -> `%s` (or the PR, where the project uses PRs); "
+        "an approval (project setup / intent / spec + validation / plan) or a merge -> the owner types its sentence in the chat "
+        "as a message of its own (%s), or runs accept.py / merge.py in his own terminal; "
+        "bringing `main` up to date with origin -> `%s`; "
         "a finding to record -> `%s`."
-        % (flowlib.script_line("accept", "<intent|spec|plan>"), flowlib.script_line("merge"), flowlib.script_line("todo_add", "--who", "<name>", '"<sentence>"'))
+        % (sentences, flowlib.script_line("sync_main"), flowlib.script_line("todo_add", "--who", "<name>", '"<sentence>"'))
     )
 
 
@@ -63,10 +72,12 @@ def clip(text, limit):
 
 
 def handle_own(name, arguments, root, config):
-    if name in READ_ONLY or name == "todo_add":
+    if name in READ_ONLY or name in ALLOWED:
         decide("allow", "flow plugin script (%s)" % name)
     if name not in OWNER_ACTS:
         return
+    if name in ("accept", "merge") and arguments.split()[-1:] == ["--check"]:
+        decide("allow", "%s.py --check changes nothing" % name)
     folder = flowlib.change_folder(root)
     tier = flowlib.tier_of(root, folder) if folder else None
     if name == "roadmap_edit":
@@ -81,10 +92,15 @@ def handle_own(name, arguments, root, config):
             decide("deny", "roadmap_edit.py: %s" % error)
         action = "move to Planned stages" if parsed[0] == "move" else "delete (%s)" % parsed[2]
         decide("ask", "Roadmap To do — %s:\n%s" % (action, line))
-    if name == "merge" and arguments == "--check":
-        decide("allow", "merge.py --check changes nothing")
+    if name == "accept" and arguments == "setup":
+        decide("deny", "Accepting the project setup is the owner's act: %s. Do not look for another way to run it." % flowlib.owner_route("setup"))
     if tier != "small":
-        decide("deny", "%s.py is the owner's act for the %s tier — he runs it in his own terminal. %s" % (name, tier or "unknown", routes()))
+        act = "merge" if name == "merge" else (arguments if arguments in flowlib.OWNER_SENTENCES else "intent")
+        decide(
+            "deny",
+            "%s.py is the owner's act for the %s tier: %s. Do not look for another way to run it."
+            % (name, tier or "unknown", flowlib.owner_route(act)),
+        )
     intent = flowlib.read_worktree(root, folder + "/intent.md")
     if name == "accept":
         if arguments != "intent":
@@ -189,6 +205,8 @@ def main():
             return
     elif any(("scripts/%s.py" % name) in command for name in OWNER_ACTS):
         decide("deny", "run accept.py, merge.py or roadmap_edit.py alone, as one command with nothing chained to it")
+    if GH_PR_MERGE.search(command):
+        decide("deny", "Blocked: `gh pr merge` merges into `main`. %s" % routes())
     reason = moves_main(command, root)
     if reason:
         decide("deny", "Blocked: %s. %s" % (reason, routes()))

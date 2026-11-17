@@ -13,7 +13,7 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
 
 ## Steps
 
-1. **Folder and branch.** `specs/<YYYY-MM-DD>-<slug>/`, on a branch of the same name: `git switch -c <YYYY-MM-DD>-<slug> main`.
+1. **Folder and branch.** Bring `main` up to date first — `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sync_main.py"` (it does nothing where there is no origin) — then `specs/<YYYY-MM-DD>-<slug>/`, on a branch of the same name: `git switch -c <YYYY-MM-DD>-<slug> main`.
 
 2. **Draft the intent** from `${CLAUDE_PLUGIN_ROOT}/templates/change/intent-small.md` — four or five lines, from the person's sentence: problem, outcome, what must not change, source. `Tier: small`. Commit it on the branch.
 
@@ -23,7 +23,7 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/accept.py" intent
    ```
 
-   The owner sees the intent in a prompt and approves. If no prompt appears or the call is refused, give him the same line to paste into his own terminal.
+   The owner sees the intent in a prompt and approves. If no prompt appears or the call is refused, ask him to type「接受 intent」as a chat message of its own — the plugin's hook then runs the same script.
 
 4. **Then, without stopping:**
    - write `validation.md` from `${CLAUDE_PLUGIN_ROOT}/templates/change/validation-small.md`;
@@ -42,7 +42,7 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/merge.py"
    ```
 
-   The prompt shows the intent and the changed files and, where the project deploys, "Merging publishes to production". Stop here; the owner decides.
+   The prompt shows the intent and the changed files and, where a merge publishes, "Merging publishes to production". Stop here; the owner decides. (No prompt: he types「确认合并」as a chat message of its own.) After the merge `main` is pushed where there is an origin, the checkout is on `main` and the branch is deleted.
 
 6. **Afterwards.** If the change came from a To do line, remove it: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap_edit.py" delete --match "<text>" --reason fix-now`.
 

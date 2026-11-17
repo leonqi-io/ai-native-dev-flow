@@ -10,15 +10,20 @@
 - [ ] **自测。** `bash tools/selftest.sh` 在本机通过。
 - [ ] **插件格式检查。** `claude plugin validate plugin`。
 - [ ] **把用户级的两段贴进 `~/.claude/CLAUDE.md`。** `plugin/templates/user/` 下的规范段和模型表。
+- [ ] **飞猫迁移到 `decisions.md`。** 插件更新后，`flightcat-site` 的 `main` 上还是 `specs/tech-stack.md`，状态报告会说「项目未立项」。在那个仓库里开一条 `setup` 分支，`git mv specs/tech-stack.md specs/decisions.md`，把文件标题和 CLAUDE.md 里指向它的三处改掉，在 Deployment 段补一行「Release approval」，提交，然后说「接受立项」。
+- [ ] **重跑两个用例。** `setup-project` 和 `close` 的 description 改了：`claude plugin eval plugin --case pick-setup-project --ablation none`、`claude plugin eval plugin --case pick-close --ablation none`。
 
-## 试点第一天要实测的四条（都是「未核实」）
+## 试点里要实测的几条（都是「未核实」）
 
 | # | 要测什么 | 怎么测 | 退路 |
 |---|---|---|---|
 | 1 | 云端 session 或 Cowork 能不能从私有仓库加载这个插件 | 在云端 session 里装插件，看 `/flow:continue` 在不在 | 本地用 `claude --plugin-dir <本仓>/plugin`；云端把插件复制进项目。另外要留意：skill 的 `when_to_use` 不在 Agent Skills 规范的字段里，按 claude.ai 上传的方式打包会报错，那时把它并进 `description` |
-| 2 | `ask` 在自动批准模式下还弹不弹提示，提示里能显示多少字 | 在各个权限模式下各跑一次小改动的第一次点击，看提示出不出、intent 全文显不显示 | 钩子改成拒绝，原因里给一行可粘贴的命令，由 owner 自己运行。小改动的两次点击、测试文件的放行、roadmap 的删除和移动都依赖这一条 |
+| 2 | `ask` 在自动批准模式下还弹不弹提示，提示里能显示多少字 | 在各个权限模式下各跑一次小改动的第一次点击，看提示出不出、intent 全文显不显示 | 小改动的两次点击改用批准句（「接受 intent」「确认合并」）。测试文件的放行、roadmap 的删除和移动没有批准句：钩子改成拒绝，原因里给一行可粘贴的命令，由 owner 自己运行。官方文档写明 auto 模式下 `ask` 一定弹提示，所以重点测其他模式和提示里能显示多少字 |
 | 3 | 一个插件 eval 用例占多少额度 | `claude plugin eval plugin --case pick-continue --runs 1 --ablation none`，跑前跑后各看一次用量页 | 占得多就减少用例或减少运行次数 |
 | 4 | 内置浏览器的三项：每个 session 一个还是共用；在后台会不会被限速；能不能上传文件 | 飞猫第一个 UI 改动之前，在桌面端开两个 session 各打开本地预览试 | 测完之前按最保守的读法：浏览器一次只给一个 session 用。结果只改一条规则：并行的 UI 改动要不要排队用浏览器 |
+| 5 | 批准句钩子在真实 session 里的表现 | 飞猫下一个正常档改动上说「接受 intent」，看三件事：脚本跑没跑；agent 有没有收到结果并接着做；你这边有没有显示一段结果（用的是 `systemMessage`）。再看定时唤醒、后台 subagent 的回报、别的 session 发来的消息这三种 prompt 的文本长什么样：临时加一个只把输入写进日志的 `UserPromptSubmit` 钩子 | 钩子不触发：在终端里粘贴状态报告给的那一行。结果不显示：只靠 agent 转述。那三种 prompt 的文本可以恰好等于批准句：把批准句换成更长的，或加一个只有 owner 知道的词 |
+| 6 | 「确认合并」在真实 GitHub 上合并 PR | 飞猫第一个走 PR 的改动上说「确认合并」，看 `gh pr merge --merge` 成不成、本地 `main` 有没有快进到合并提交、本地和远端的分支有没有删。自测里对着的是一个假的 `gh` | 在 GitHub 页面上点合并，回来再说「确认合并」，脚本只做同步和清理 |
+| 7 | `main` 一动就推，会不会让流水线跑得太多 | 飞猫接上 Actions 之后，数一个改动从 intent 到合并触发了几次构建（每次批准、每条待办各推一次） | 在流水线里按路径忽略 `specs/**`；还嫌多就改成只在合并和同步时推 |
 
 第 3 条测完、额度可以接受之后，整套跑一次并生成清单：
 
@@ -34,6 +39,4 @@ python3 tools/skill_list.py
 
 ## 试点中发现、还没处理的流程问题
 
-- 2026-11-16 · Leon（飞猫立项 session）· `tech-stack.md` 名不副实：立项写出来的是一份决定记录（部署方式、三条流程在哪跑、内容怎么进 main、谁批准、固定页面类型清单、未定事项），和技术栈基本无关。要裁定：这份文件改名，还是拆成「技术栈」和「项目级决定」两份；项目级决定现在没有别的存放处。涉及 `docs/flow.md` 立项一章、`plugin/templates/project/tech-stack.md`、`setup-project` skill、`check_shape.py` 的 `tech-stack` 一类。实例：`flightcat-site` 的 `specs/tech-stack.md`（`setup` 分支）。
-- 2026-11-17 · Leon（飞猫立项 session）· 「部署凭据放在 agent 够不到的地方、由合并触发部署」写成对每个要部署项目的硬要求，太严。Leon 的意见：部署方式应按项目具体分析，立项 skill 里不该给硬要求。实例：飞猫的备用发布是 agent skill 在 Leon 已登录的浏览器里经 cPanel 文件管理器上传，合并不再自动发布；当时由 session 临场判断接受，并把偏离写进部署一节。要改的地方：`docs/flow.md` 第 275 行（「只有一条硬要求」）、`setup-project` skill 第 3 步的 "One hard requirement"、模板 `tech-stack.md` 的 Deployment 段。连带要看：第 279 行「合并就是发布批准」和小改动合并提示里的「Merging publishes to production」都以合并触发部署为前提，改成按项目分析后这两处要说明不成立时怎么办。
-- 2026-11-17 · Leon（飞猫立项 session）· `accept.py setup` 只把固定的几个文件（mission、tech-stack、roadmap、CLAUDE.md、REVIEW.md、`.claude/` 下的文件）提交进 `main`；`setup` 分支上的其他文件不带过去，也不提示。实例：飞猫立项时按 owner 要求写的 mockups 盘点 `references/mockups/README.md` 留在了 `setup` 分支上，而 `main` 上的 CLAUDE.md 有一行指向它，验收后成了空指针，要 owner 另外手工补提交。要裁定：验收时列出分支上没带进 `main` 的文件并提示；或者把立项分支上的非产品路径文件一并带上；或者在 `setup-project` skill 里写明立项时写的其他文件怎么进 `main`。涉及 `plugin/scripts/accept.py`（`what == "setup"` 一支，第 37 行起）和 `setup-project` skill 第 5、6 步。
+（现在没有。）

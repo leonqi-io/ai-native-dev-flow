@@ -6,7 +6,7 @@ about the quality of the content, only that no part is missing.
 
 Usage: check_shape.py <kind> <path>
 Kinds: intent, intent-small, spec, validation, validation-small, plan,
-       mission, tech-stack, roadmap
+       mission, decisions, roadmap
 """
 
 import re
@@ -23,7 +23,7 @@ HEADINGS = {
     "validation-small": ["What changed", "Verify", "Review", "Leftovers", "Approval log"],
     "plan": ["Files that change", "Order of work", "Risks", "Proof"],
     "mission": ["Who", "What they bring", "What they leave with", "What they do in between", "What this does not do"],
-    "tech-stack": ["Decisions", "Cost of a bad release"],
+    "decisions": ["Decisions", "Cost of a bad release"],
     "roadmap": ["Planned stages", "To do", "Known limits"],
 }
 

@@ -41,6 +41,15 @@ def gather(root):
             for name in ("intent", "spec", "validation", "plan")
         }
         info["red"] = flowlib.red_committed(root, folder)
+        # The branch is already in `main`: merged, but the tidy-up did not run (or the PR was merged on the page).
+        remote = flowlib.origin_main(root)
+        info["merged"] = info["on_main"]["intent"] and (
+            flowlib.is_ancestor(root, "HEAD", flowlib.MAIN) or bool(remote and flowlib.is_ancestor(root, "HEAD", remote))
+        )
+    remote = flowlib.origin_main(root)
+    info["main_behind"] = bool(
+        remote and flowlib.main_exists(root) and remote != flowlib.git_out(["rev-parse", flowlib.MAIN], cwd=root) and flowlib.is_ancestor(root, flowlib.MAIN, remote)
+    )
     return info
 
 
@@ -58,13 +67,13 @@ def unread_small_changes(root):
 
 
 def stage_of(info):
-    """(stage name, what is going on, next step, the owner's pasteable line or None)."""
+    """(stage name, what is going on, next step, the approval that is the owner's to give — a key of OWNER_SENTENCES — or None)."""
     if info["missing_setup"]:
         return (
             "Project setup",
             "not on `main` yet: " + ", ".join(info["missing_setup"]),
-            "write mission.md, tech-stack.md and roadmap.md on a branch named `setup` (skill: setup-project)",
-            flowlib.script_line("accept", "setup"),
+            "write mission.md, decisions.md and roadmap.md on a branch named `setup` (skill: setup-project)",
+            "setup",
         )
     if "folder" not in info:
         if info["branch"] == flowlib.MAIN:
@@ -81,7 +90,14 @@ def stage_of(info):
     if not accepted["intent"]:
         if tier == "small":
             return ("Plan", "small-change intent drafted", "ask for the one-click confirmation: run accept.py intent", None)
-        return ("Plan", "intent drafted, waiting for 'intent accepted'", "the owner reads intent.md and commits it", flowlib.script_line("accept", "intent"))
+        return ("Plan", "intent drafted, waiting for 'intent accepted'", "the owner reads intent.md and accepts it", "intent")
+    if info["merged"]:
+        return (
+            "Merged",
+            "this branch is already in `main`",
+            "tidy up — the approval below switches this checkout to `main` and deletes the branch (a small change: run merge.py)",
+            "merge",
+        )
     if tier == "small":
         return (
             "Small change",
@@ -93,16 +109,16 @@ def stage_of(info):
         return (
             "Design",
             "intent accepted; spec.md and validation.md are being written",
-            "finish the question loop; the owner reads validation.md §0 (and §3) and commits the pair",
-            flowlib.script_line("accept", "spec"),
+            "finish the question loop; the owner reads validation.md §0 (and §3) and accepts the pair",
+            "spec",
         )
     if not accepted["plan"]:
         extra = " A fresh session reads the plan once more before the owner commits it (high-risk tier)." if tier == "high-risk" else ""
         return (
             "Build",
             "spec accepted; plan.md is being written",
-            "draft plan.md in plan mode; the owner rules its points and commits it." + extra,
-            flowlib.script_line("accept", "plan"),
+            "draft plan.md in plan mode; the owner rules its points and approves it." + extra,
+            "plan",
         )
     if not info["red"]:
         return (
@@ -111,20 +127,19 @@ def stage_of(info):
             "write the tests of validation.md §1, run the formatter on them, commit them with red-run.txt",
             None,
         )
-    merge_line = None if info["config"]["pull_request"] else flowlib.script_line("merge")
-    how = "open the PR; the owner merges it there" if info["config"]["pull_request"] else "the owner merges"
+    how = "push the branch and open the PR; the owner's approval merges it" if info["config"]["pull_request"] else "the owner's approval merges it"
     return (
         "Build / Test / Deploy",
         "red run committed; the test files are locked",
         "implement to green, code-reviewer and verifier, review in a fresh session, the owner's validation, the close check, then " + how,
-        merge_line,
+        "merge",
     )
 
 
 def render(info):
     if not info["enabled"]:
         return "flow: not in use in this repository (%s is missing)" % flowlib.CONFIG_PATH
-    stage, situation, next_step, owner_line = stage_of(info)
+    stage, situation, next_step, act = stage_of(info)
     lines = ["flow state · %s" % flowlib.now_stamp()]
     lines.append("project: %s" % ("NOT SET UP" if info["missing_setup"] else "set up"))
     lines.append("branch: %s" % (info["branch"] or "(detached HEAD)"))
@@ -135,8 +150,11 @@ def render(info):
         lines.append("red-run.txt: %s" % ("committed (test lock on)" if info["red"] else "not committed"))
     lines.append("stage: %s — %s" % (stage, situation))
     lines.append("next: " + next_step)
-    if owner_line:
-        lines.append("owner's line (run in your own terminal): " + owner_line)
+    if act:
+        line = flowlib.script_line("merge") if act == "merge" else flowlib.script_line("accept", act)
+        lines.append("owner's approval: type「%s」in the chat, as a message of its own — or run in your own terminal: %s" % (flowlib.owner_sentence(act), line))
+    if info["main_behind"]:
+        lines.append("main: behind origin/main (as last fetched) — bring it up to date: " + flowlib.script_line("sync_main"))
     if info["todo_count"]:
         lines.append("to do: %d open line(s), oldest %s" % (info["todo_count"], info["todo_oldest"]))
     else:

@@ -1,6 +1,6 @@
 # Mission — <product>
 
-<!-- Written once per project, at project setup; approved by the owner's commit into `main`.
+<!-- Written once per project, at project setup; approved by the owner (「接受立项」).
 Used by: the question loop (a scope question is looked up here first and not asked when answered);
 each intent's "Out of scope"; dismissing a finding in the roadmap's To do.
 When an intent conflicts with this file, this file is amended first, then the intent is accepted.

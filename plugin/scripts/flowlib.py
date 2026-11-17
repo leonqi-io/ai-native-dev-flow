@@ -10,18 +10,43 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
+
+# The reports and the refusals carry non-ASCII text (the owner's sentences, "·", "—").
+# Say so explicitly instead of depending on the locale a hook happens to run under.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
 
 MAIN = "main"
 SPECS = "specs"
 CONFIG_PATH = ".claude/flow.json"
-SETUP_FILES = ["specs/mission.md", "specs/tech-stack.md", "specs/roadmap.md"]
+SETUP_FILES = ["specs/mission.md", "specs/decisions.md", "specs/roadmap.md"]
 ROADMAP = "specs/roadmap.md"
 # Paths the presence check never guards, in every project.
 BUILT_IN_NON_PRODUCT = ["specs/**", "CLAUDE.md"]
 REQUIRED_CONFIG_KEYS = ["test_scope", "deploys", "pull_request"]
 TIERS = ("small", "normal", "high-risk")
+# Seconds a git command that talks to origin may take before it counts as failed.
+# Basis: such a command normally answers within a few seconds; the approval hook
+# gives a whole script 100 seconds (hook_user_prompt.py), and a merge makes up
+# to four of these calls — so a hanging network must not use up more than 20 each.
+NETWORK_TIMEOUT = 20
+
+# The owner's approval sentences. Typed alone as a whole chat message, one of
+# these makes the UserPromptSubmit hook run the matching script — no terminal.
+# The first sentence of each list is the one the reports and the skills show.
+OWNER_SENTENCES = {
+    "setup": ["接受立项", "立项接受", "accept setup", "accept the setup"],
+    "intent": ["接受 intent", "intent 接受", "accept intent", "accept the intent"],
+    "spec": ["接受 spec", "spec 接受", "accept spec", "accept the spec"],
+    "plan": ["批准 plan", "plan 批准", "approve plan", "approve the plan"],
+    "merge": ["确认合并", "合并确认", "confirm merge", "confirm the merge"],
+}
 
 
 class FlowError(Exception):
@@ -31,8 +56,8 @@ class FlowError(Exception):
 # ---------------------------------------------------------------- git basics
 
 
-def git(args, cwd=None, env=None, stdin_text=None):
-    """Run git and return the CompletedProcess; never raises on a non-zero exit."""
+def git(args, cwd=None, env=None, stdin_text=None, timeout=None):
+    """Run git and return the CompletedProcess; never raises on a non-zero exit or a timeout."""
     try:
         return subprocess.run(
             ["git"] + list(args),
@@ -41,9 +66,12 @@ def git(args, cwd=None, env=None, stdin_text=None):
             input=stdin_text,
             capture_output=True,
             text=True,
+            timeout=timeout,
         )
     except FileNotFoundError:
         return subprocess.CompletedProcess(args, 127, "", "git is not installed")
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(args, 124, "", "git %s did not answer within %s seconds" % (args[0], timeout))
 
 
 def git_out(args, cwd=None, env=None):
@@ -112,6 +140,145 @@ def main_worktree(root):
 
 def merge_base(root):
     return git_out(["merge-base", MAIN, "HEAD"], cwd=root) or None
+
+
+def is_ancestor(root, older, newer):
+    """True when the commit `older` is contained in `newer` (or is the same commit)."""
+    return git(["merge-base", "--is-ancestor", older, newer], cwd=root).returncode == 0
+
+
+# ------------------------------------------------- the owner's sentences
+
+
+def squeeze(text):
+    """Lower case, without spaces and punctuation — how a typed sentence is compared."""
+    return re.sub(r"[\W_]+", "", (text or "").lower())
+
+
+def owner_act(text):
+    """The approval a text stands for — only when the whole text is one of the owner's sentences."""
+    squeezed = squeeze(text)
+    if not squeezed:
+        return None
+    for act, sentences in OWNER_SENTENCES.items():
+        if squeezed in [squeeze(sentence) for sentence in sentences]:
+            return act
+    return None
+
+
+def owner_sentence(act):
+    return OWNER_SENTENCES[act][0]
+
+
+def owner_route(act):
+    """How the owner gives this approval: the sentence in the chat, or the line for his terminal."""
+    line = script_line("merge") if act == "merge" else script_line("accept", act)
+    return "the owner types「%s」in the chat as a message of its own (or runs `%s` in his own terminal)" % (owner_sentence(act), line)
+
+
+# ------------------------------------------------------- `main` and origin
+#
+# Where the repository has an `origin`, local `main` and origin/main are kept
+# the same: every script that moves `main` first takes in what origin has
+# (a fast-forward only) and pushes afterwards. Without that, a pull request
+# merged on GitHub and a line committed locally would leave two diverged
+# `main`s that only a hand-made merge in a terminal could join.
+
+
+def has_origin(root):
+    return bool(git_out(["remote", "get-url", "origin"], cwd=root))
+
+
+def origin_main(root):
+    """The commit of origin/main as last fetched, or None."""
+    return git_out(["rev-parse", "-q", "--verify", "refs/remotes/origin/" + MAIN], cwd=root) or None
+
+
+def move_main(root, target):
+    """Fast-forward local `main` to the commit `target`, wherever `main` is checked out."""
+    old = git_must(["rev-parse", MAIN], cwd=root)
+    if old == target:
+        return
+    if not is_ancestor(root, old, target):
+        raise FlowError("`main` (%s) cannot be fast-forwarded to %s" % (old[:7], target[:7]))
+    checkout = main_worktree(root)
+    if checkout:
+        if git_out(["status", "--porcelain", "--untracked-files=no"], cwd=checkout):
+            raise FlowError("`main` is checked out at %s with uncommitted changes; commit or stash them first" % checkout)
+        git_must(["merge", "--ff-only", "-q", target], cwd=checkout)
+    else:
+        git_must(["update-ref", "refs/heads/" + MAIN, target, old], cwd=root)
+
+
+def sync_main(root):
+    """Take into local `main` what origin/main has — a fast-forward, never a merge.
+
+    Returns a sentence to print, or None when there was nothing to do (no
+    origin, already the same, or local `main` is ahead and the next push
+    carries it). Raises FlowError when the two have diverged.
+    """
+    if not has_origin(root) or not main_exists(root):
+        return None
+    fetched = git(["fetch", "-q", "origin", MAIN], cwd=root, timeout=NETWORK_TIMEOUT)
+    remote = origin_main(root)
+    if fetched.returncode != 0:
+        if remote is None:
+            return None  # origin has no `main` yet: the first push creates it
+        reason = (fetched.stderr.strip().splitlines() or ["no reason given"])[-1]
+        return "NOTE: could not fetch origin/main (%s); working from the local `main`" % reason
+    local = git_must(["rev-parse", MAIN], cwd=root)
+    if remote is None or remote == local or is_ancestor(root, remote, local):
+        return None
+    if is_ancestor(root, local, remote):
+        move_main(root, remote)
+        return "`main` fast-forwarded to origin/main (%s)" % remote[:7]
+    raise FlowError(
+        "local `main` and origin/main have diverged, and the flow only fast-forwards. "
+        "In your own terminal: `git switch main && git pull --no-rebase && git push`, then repeat this step"
+    )
+
+
+def push_main(root):
+    """Push `main` to origin where there is one. Returns (succeeded, sentence to print or None)."""
+    if not has_origin(root):
+        return True, None
+    pushed = git(["push", "-q", "origin", MAIN], cwd=root, timeout=NETWORK_TIMEOUT)
+    if pushed.returncode != 0:
+        return False, "NOTE: `git push origin main` failed — origin does not have this yet; the next step that moves `main` pushes it again:\n%s" % pushed.stderr.strip()
+    return True, "pushed `main` to origin"
+
+
+def leave_branch(root, branch, force=False):
+    """After a merge: switch this checkout to `main` and delete the working branch.
+
+    Returns the sentences to print. Never raises — the merge has happened;
+    a tidy-up that cannot finish says what is left to do by hand.
+    The branch is deleted only when `main` contains it. force=True is for a
+    branch GitHub merged by squash or rebase: Git cannot see that it is
+    merged, the pull request's state says so.
+    """
+    by_hand = "when convenient: `git switch %s` and `git branch -D %s`" % (MAIN, branch)
+    if not (force or is_ancestor(root, branch, MAIN)):
+        return ["NOTE: `main` does not contain %s; the branch is left as it is" % branch]
+    if current_branch(root) == branch:
+        switched = git(["switch", "-q", MAIN], cwd=root)
+        if switched.returncode != 0:
+            reason = (switched.stderr.strip().splitlines() or ["no reason given"])[-1]
+            return ["NOTE: this checkout stays on %s (%s); %s" % (branch, reason, by_hand)]
+    # -D on purpose: "is it merged" was answered above against `main`; -d would ask the branch's upstream instead.
+    deleted = git(["branch", "-D", branch], cwd=root)
+    if deleted.returncode != 0:
+        return ["NOTE: the branch %s was not deleted (%s); %s" % (branch, deleted.stderr.strip(), by_hand)]
+    lines = ["this checkout is on `%s`; the branch %s is deleted" % (MAIN, branch)]
+    if has_origin(root):
+        listed = git(["ls-remote", "--exit-code", "--heads", "origin", branch], cwd=root, timeout=NETWORK_TIMEOUT)
+        if listed.returncode == 0:
+            removed = git(["push", "-q", "origin", "--delete", branch], cwd=root, timeout=NETWORK_TIMEOUT)
+            if removed.returncode == 0:
+                lines.append("origin/%s is deleted too" % branch)
+            else:
+                lines.append("NOTE: origin/%s was not deleted: %s" % (branch, removed.stderr.strip()))
+    return lines
 
 
 # ------------------------------------------------------------ project config
@@ -280,8 +447,13 @@ def commit_to_main(root, changes, message):
     commit (an approval record, a to-do line). It builds the new tree in a
     temporary index, so the working tree of the current branch is untouched.
     If `main` is checked out in some worktree, that worktree has to be clean
-    and is brought to the new commit afterwards.
+    and is brought to the new commit afterwards. Where there is an origin,
+    `main` first takes in what origin has and is pushed afterwards (the
+    sentences about that are printed here).
     """
+    note = sync_main(root)
+    if note:
+        print(note)
     parent = git_out(["rev-parse", "-q", "--verify", "refs/heads/" + MAIN], cwd=root) or None
     checkout = main_worktree(root)
     if checkout and git_out(["status", "--porcelain", "--untracked-files=no"], cwd=checkout):
@@ -314,6 +486,9 @@ def commit_to_main(root, changes, message):
     git_must(update_args, cwd=root)
     if checkout:
         git_must(["reset", "--hard", "-q", MAIN], cwd=checkout)
+    note = push_main(root)[1]
+    if note:
+        print(note)
     return commit
 
 

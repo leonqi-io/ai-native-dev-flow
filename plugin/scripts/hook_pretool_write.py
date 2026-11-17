@@ -28,12 +28,12 @@ CHAIN_FILE = re.compile(r"^specs/([^/]+)/(spec|validation|plan)\.md$")
 
 
 def decide(decision, reason):
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision, "permissionDecisionReason": reason}}))
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision, "permissionDecisionReason": reason}}, ensure_ascii=False))
     sys.exit(0)
 
 
 def owner_line(what):
-    return "the owner runs `%s` in his own terminal" % flowlib.script_line("accept", what)
+    return flowlib.owner_route(what)
 
 
 def check_chain_file(root, name, part):
