@@ -4,15 +4,6 @@
 
 试点项目：flightcat.ca 改版。试点不从写这个仓库的 session 开始。
 
-## 试点开始之前
-
-- [✅] **飞猫的立项 session。** 对着今天的实际情况复查需求和设计，重新讨论有没有更好的部署方式，然后写 mission.md、roadmap.md、tech-stack.md。在网站自己的仓 `flightcat-site` 里做（2026-11-16 从内容仓 `flightcat` 分出）；旧的 V3 设定在它的 `references/` 下。
-- [ ] **自测。** `bash tools/selftest.sh` 在本机通过。
-- [ ] **插件格式检查。** `claude plugin validate plugin`。
-- [ ] **把用户级的两段贴进 `~/.claude/CLAUDE.md`。** `plugin/templates/user/` 下的规范段和模型表。
-- [ ] **飞猫迁移到 `decisions.md`。** 插件更新后，`flightcat-site` 的 `main` 上还是 `specs/tech-stack.md`，状态报告会说「项目未立项」。在那个仓库里开一条 `setup` 分支，`git mv specs/tech-stack.md specs/decisions.md`，把文件标题和 CLAUDE.md 里指向它的三处改掉，在 Deployment 段补一行「Release approval」，提交，然后说「接受立项」。
-- [ ] **重跑两个用例。** `setup-project` 和 `close` 的 description 改了：`claude plugin eval plugin --case pick-setup-project --ablation none`、`claude plugin eval plugin --case pick-close --ablation none`。
-
 ## 试点里要实测的几条（都是「未核实」）
 
 | # | 要测什么 | 怎么测 | 退路 |
