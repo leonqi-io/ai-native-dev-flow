@@ -10,7 +10,7 @@
 | skill | 阶段 | 什么时候用 | 做什么 | 结束时停在哪 |
 |---|---|---|---|---|
 | continue | 入口 | 想接着做，不确定到哪一步了 | 跑状态脚本，说现在在哪个阶段，加载那个阶段的 skill | 接到对应的 skill |
-| setup-project | 立项 | 一个仓库第一次用这套流程 | 和 owner 写 mission、tech-stack、roadmap，以及项目的 CLAUDE.md、REVIEW.md、`.claude/flow.json` | 给 owner 一行提交命令 |
+| setup-project | 立项 | 一个仓库第一次用这套流程 | 和 owner 写 mission、tech-stack、roadmap，以及项目的 CLAUDE.md、REVIEW.md、`.claude/flow.json`；跑问答 | 给 owner 一行提交命令 |
 | intent | Plan | 想做一个改动，不是小改动 | 定档位，建文件夹和分支，起草 intent.md，跑问答 | 给 owner 一行提交命令（intent 接受） |
 | spec | Design | intent 已接受 | researcher 查事实；写 spec.md 和 validation.md；跑问答；试跑每条命令；R-ID 覆盖检查 | 给 owner 一行提交命令（spec 接受） |
 | plan | Build | spec 已接受 | 在 plan mode 里写 plan.md；高风险档提示另开 session 二读 | 给 owner 一行提交命令（plan 批准） |

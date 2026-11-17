@@ -1,6 +1,6 @@
-# The question loop (Plan and Design)
+# The question loop (project setup, Plan and Design)
 
-Used by the `intent` and `spec` skills. Its job: settle missed details and boundaries before they cause rework — in several rounds, each entered with bounds, not refined without end.
+Used by the `setup-project`, `intent` and `spec` skills. The implementation plan and the review do not use it. Its job: settle missed details and boundaries before they cause rework — in several rounds, each entered with bounds, not refined without end.
 
 ## How a round runs
 1. **Every round hangs on a draft.** Draft the file from what is known. Questions come from the draft's gaps; answers update the draft.
@@ -21,7 +21,14 @@ Completeness checklist:
 - out of scope is stated;
 - no concern is without an owner.
 
+## At project setup
+The `setup-project` skill runs the same rounds, with three differences:
+- **The draft is the three project files together** (`specs/mission.md`, `specs/tech-stack.md`, `specs/roadmap.md`) plus the five values of `.claude/flow.json`. The mission and the tech stack are what is being written, so "look first" means the documents the repository already has.
+- **The completeness checklist is not used** — it is written for a single change. The loop stops only when a round changed nothing in the draft.
+- **What is still open then** becomes a line in the roadmap's "To do" (`<date> · <who raised it> · <one sentence>`), since there is no concern list yet. It is not asked again.
+
 ## What each stage asks
+- **Project setup:** who the product is for and what it does not do; the technical decisions not yet locked, and how it deploys; what a few days of broken production cost; the planned stages.
 - **Plan (intent):** what, why, for whom, constraints, out of scope. Never how.
 - **Design (spec):** behaviour, edge cases, policy conflicts. For a UI change, questions are asked against the mock, not against prose.
 
