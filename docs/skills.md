@@ -43,18 +43,18 @@
 | skill | 保底启动 | 测试通过的说法 | 用例 | 最近一次结果 |
 |---|---|---|---|---|
 | close | `/flow:close` | 「验收过了，收尾准备合并」 | `plugin/evals/pick-close/` | 通过 |
-| continue | `/flow:continue` | （还没有通过的记录） | `plugin/evals/pick-continue/` | 未跑 |
-| implement | `/flow:implement` | （还没有通过的记录） | `plugin/evals/pick-implement/` | 未跑 |
-| intent | `/flow:intent` | （还没有通过的记录） | `plugin/evals/pick-intent/` | 未跑 |
-| plan | `/flow:plan` | （还没有通过的记录） | `plugin/evals/pick-plan/` | 未跑 |
-| review | `/flow:review` | （还没有通过的记录） | `plugin/evals/pick-review/` | 未跑 |
-| setup-project | `/flow:setup-project` | （还没有通过的记录） | `plugin/evals/pick-setup-project/` | 未跑 |
-| small-change | `/flow:small-change` | （还没有通过的记录） | `plugin/evals/pick-small-change/` | 未跑 |
-| spec | `/flow:spec` | （还没有通过的记录） | `plugin/evals/pick-spec/` | 未跑 |
-| todo | `/flow:todo` | （还没有通过的记录） | `plugin/evals/pick-todo/` | 未跑 |
-| validate | `/flow:validate` | （还没有通过的记录） | `plugin/evals/pick-validate/` | 未跑 |
+| continue | `/flow:continue` | 「接着做，看看现在到哪一步了」 | `plugin/evals/pick-continue/` | 通过 |
+| implement | `/flow:implement` | 「plan 批了，开始实现」 | `plugin/evals/pick-implement/` | 通过 |
+| intent | `/flow:intent` | 「我想加一个功能：首页放一个联系电话，客人现在要翻到页面最下面才找得到」 | `plugin/evals/pick-intent/` | 通过 |
+| plan | `/flow:plan` | 「spec 和 validation 批了，出实现计划」 | `plugin/evals/pick-plan/` | 通过 |
+| review | `/flow:review` | 「评审一下这个分支」 | `plugin/evals/pick-review/` | 通过 |
+| setup-project | `/flow:setup-project` | 「给这个项目立项」 | `plugin/evals/pick-setup-project/` | 通过 |
+| small-change | `/flow:small-change` | 「这个按小改动处理：页脚的年份写错了」 | `plugin/evals/pick-small-change/` | 通过 |
+| spec | `/flow:spec` | 「intent 已经接受了，开始写 spec」 | `plugin/evals/pick-spec/` | 通过 |
+| todo | `/flow:todo` | 「记一条待办：手机上导航栏会换行」 | `plugin/evals/pick-todo/` | 通过 |
+| validate | `/flow:validate` | 「带我走一遍验收」 | `plugin/evals/pick-validate/` | 通过 |
 
-生成依据：`plugin/evals/results/2026-11-17T17-04-02-937Z/`，Claude Code 2.1.326。
+生成依据：`plugin/evals/results/2026-11-18T16-57-50-202Z/`，Claude Code 2.1.327。
 <!-- generated:phrasings:end -->
 
 每个 skill 只测一种说法，因为这套流程主要是我们自己用，忘了可以来查，查不到还有 `/flow:<名字>`。

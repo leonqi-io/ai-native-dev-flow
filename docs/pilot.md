@@ -8,20 +8,11 @@
 
 | # | 要测什么 | 怎么测 | 退路 |
 |---|---|---|---|
-| 1 | 云端 session 或 Cowork 能不能从私有仓库加载这个插件 | 在云端 session 里装插件，看 `/flow:continue` 在不在 | 本地用 `claude --plugin-dir <本仓>/plugin`；云端把插件复制进项目。另外要留意：skill 的 `when_to_use` 不在 Agent Skills 规范的字段里，按 claude.ai 上传的方式打包会报错，那时把它并进 `description` |
 | 2 | `ask` 在自动批准模式下还弹不弹提示，提示里能显示多少字 | 在各个权限模式下各跑一次小改动的第一次点击，看提示出不出、intent 全文显不显示 | 小改动的两次点击改用批准句（「接受 intent」「确认合并」）。测试文件的放行、roadmap 的删除和移动没有批准句：钩子改成拒绝，原因里给一行可粘贴的命令，由 owner 自己运行。官方文档写明 auto 模式下 `ask` 一定弹提示，所以重点测其他模式和提示里能显示多少字 |
-| 3 | 一个插件 eval 用例占多少额度 | `claude plugin eval plugin --case pick-continue --runs 1 --ablation none`，跑前跑后各看一次用量页 | 占得多就减少用例或减少运行次数 |
 | 4 | 内置浏览器的三项：每个 session 一个还是共用；在后台会不会被限速；能不能上传文件 | 飞猫第一个 UI 改动之前，在桌面端开两个 session 各打开本地预览试 | 测完之前按最保守的读法：浏览器一次只给一个 session 用。结果只改一条规则：并行的 UI 改动要不要排队用浏览器 |
 | 5 | 批准句钩子在真实 session 里的表现 | 飞猫下一个正常档改动上说「接受 intent」，看三件事：脚本跑没跑；agent 有没有收到结果并接着做；你这边有没有显示一段结果（用的是 `systemMessage`）。再看定时唤醒、后台 subagent 的回报、别的 session 发来的消息这三种 prompt 的文本长什么样：临时加一个只把输入写进日志的 `UserPromptSubmit` 钩子 | 钩子不触发：在终端里粘贴状态报告给的那一行。结果不显示：只靠 agent 转述。那三种 prompt 的文本可以恰好等于批准句：把批准句换成更长的，或加一个只有 owner 知道的词 |
 | 6 | 「确认合并」在真实 GitHub 上合并 PR | 飞猫第一个走 PR 的改动上说「确认合并」，看 `gh pr merge --merge` 成不成、本地 `main` 有没有快进到合并提交、本地和远端的分支有没有删。自测里对着的是一个假的 `gh` | 在 GitHub 页面上点合并，回来再说「确认合并」，脚本只做同步和清理 |
 | 7 | `main` 一动就推，会不会让流水线跑得太多 | 飞猫接上 Actions 之后，数一个改动从 intent 到合并触发了几次构建（每次批准、每条待办各推一次） | 在流水线里按路径忽略 `specs/**`；还嫌多就改成只在合并和同步时推 |
-
-第 3 条测完、额度可以接受之后，整套跑一次并生成清单：
-
-```bash
-claude plugin eval plugin --ablation none
-python3 tools/skill_list.py
-```
 
 ## 试点期间
 

@@ -22,7 +22,7 @@
 claude --plugin-dir /path/to/ai-native-dev-flow/plugin
 ```
 
-云端 session 和 Cowork 能不能从私有仓库加载：未核实，见 `docs/pilot.md`。
+只走本地：用上面的 `--plugin-dir` 加载，不在云端 session 和 Cowork 里用（见 `docs/decisions.md` 2026-11-18）。
 
 需要：Python 3.9 以上、Git。开 PR 的项目还需要 GitHub CLI（`gh`，已登录）。插件 eval 需要 Claude Code v2.1.269 以上。
 
