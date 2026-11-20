@@ -81,3 +81,18 @@
 - 2026-11-18：试点前的插件 eval 全套跑完：11 个用例全部通过（默认每例 3 次，33 次全是 1.00），共 540 秒、eval 自报 $4.25；`docs/skills.md` 的生成段已按这次结果重生成。上一条里「全套约 $2.2」按每例 1 次估，实际默认是 3 次。
 - 2026-11-18：开发只走本地，插件用 `claude --plugin-dir <本仓>/plugin` 加载；云端 session 和 Cowork 不用，试点清单第 1 条不测、删去。原因：owner 判本地够用，不值得为云端多一套加载方式。查过的文档事实：云端 session 没有 `/plugin`，本机装的插件和仓库 `.claude/settings.json` 里 `enabledPlugins` / `extraKnownMarketplaces` 打开的插件都不加载；剩下的「把插件放进项目 `.claude/skills/`」一条没测。
 - 2026-11-18：批准句钩子在真实 session 里可用。飞猫 `2026-11-18-scaffold-content-model` 上，新开的 Sonnet session 第一条消息说「批准 plan」：钩子跑了 `accept.py plan`（plan.md 进 `main`，提交 630cd05，已推到 origin）；结果以 `UserPromptSubmit says:` 一段显示给 owner；agent 收到结果，用一行报告后加载了 `implement` 并开始做。（owner 18:08 报告并附截图；试点清单第 5 条的前半，测完删去；三种不是 owner 打字的 prompt 的文本还没测，留在清单里）
+- 2026-11-19：试点清单第 6 条实测通过，从清单里删去。飞猫 `2026-11-18-scaffold-content-model`（走 PR 的项目）上 owner 说「确认合并」：PR #1 并入 `main`（737deb1），合并前的收尾检查六项通过，本地 `main` 跟上，工作分支本地和远端都删了。（21:47）
+- 2026-11-19：**走完飞猫第一个改动之后改形状：一个改动一个 session，owner 坐下来两次。** owner 的判断：做一个样例脚手架切了记不清多少个 session 和模型，多数时候只是把提示词从一个 session 复制粘贴到另一个，报告长、记不住各自指向什么；仔细读每份报告不如自己写，不读只转贴则验收没有价值。原因归到一处：「评审的不是实现的」这条独立性是靠 owner 在 session 之间传话实现的。改成：开头坐下来一次（说要做什么、答问、确认事实值、认可「做成什么样」，接着终审 plan），结尾坐下来一次（看一屏结果、答只有他能答的判断题、说「确认合并」）；中间的评审、修复、复核、清点由 session 内部的 subagent 和脚本做，报告落盘，owner 不读；中途只在三种情况找他（开头定的做不到或互相矛盾；同一个问题修了两轮不过；要做开头没授权的不可逆的事）。取代 11/15 的「评审在新开的 session 里做」对正常档和高风险档的硬要求、四个批准点、高风险档 plan 的二读。规则文档和插件按 `docs/pilot.md` 里的 plan 改，改完之前以本条为准。（22:02 – 22:30）
+- 2026-11-19：plan 保留 owner 的终审，在同一个 session 里做。对照 playbook 的 plan how-to：从起草到实现是同一个会话，追问（可能弄坏什么、哪一步风险最大、有哪些备选方案没选）是工程师本人做的；「没看过这段对话的工程师只凭计划就能实现」是停笔的标准，不是换 session 的程序。plan.md 开头一节写这三个追问的答案和要裁定的点，owner 读这一节、追问到满意、批准，批准之后同一个 session 接着实现。原因：这是动手之前工程师最后一次了解要怎么做。（22:27）
+- 2026-11-19：批准合成三次：「做成什么样」（intent、spec、validation 一起接受）、plan、合并。小改动的两次点击不变。（22:38，owner 对列出的八条「全批默认」，以下七条同）
+- 2026-11-19：批准之后默认接着做，owner 随时可以打断；不做停顿标记。取代 11/18「默认停、带『并继续』才往下」。
+- 2026-11-19：测试放行不再问 owner。锁开着时改测试文件，agent 记一行放行记录，评审的 subagent 查测试有没有被削弱，改过哪些测试列在结尾那一屏。小改动的两次点击和 roadmap 待办行的删除、移动照旧询问。
+- 2026-11-19：高风险档和正常档同一个形状，评审的 subagent 用更强的模型；新开 session 的评审变成 owner 想要时才用的选项，不是固定步骤。档位按出错的代价定，不按触发词。
+- 2026-11-19：模型：正常档和高风险档的主 session 用 Opus，小改动用 Sonnet，一个改动中途不换。取代模型表里按步骤分模型的四行。
+- 2026-11-19：核心不带「禁止用 shell 写文件」的钩子。飞猫脚手架的 Build 几乎全是 shell 写的（`docs/measures.md` 那一项「出现一次就加」因此不照做）；合并前按差异查的两项（测试范围、plan 对照）实测对 shell 写的文件管用。
+- 2026-11-19：`deploys` 表示「现在合并会不会发布」，流水线接上的那个改动里才改成 true。原因：飞猫设了 true 而流水线还不存在，PR 第一行和合并脚本的提示都说了不实的话。
+- 2026-11-19：结尾的判断题 owner 可以说「这题不判断」：脚本记一行，并在 Leftovers 留一条带去向的遗留项，收尾检查不拦。
+- 2026-11-19：查过的文档事实（code.claude.com 的 sub-agents、model-config、hooks、tools-reference 页）：subagent 定义的 frontmatter 可以带 `model` 和 `effort`；Agent 工具调用时也可以带 model；`ExitPlanMode` 是「给出计划、请用户批准后退出 plan mode」的工具，需要许可，plan mode 里计划先写到磁盘上的一个文件，不在仓库里。
+- 2026-11-19：改 flow 的 plan 和它的三个裁定点 owner 已批准（23:09）。（一）plan 在 Claude Code 的 plan mode 里起草，owner 接受计划那一下就是批准：`ExitPlanMode` 的 PostToolUse 钩子里由脚本把被批准的计划全文原样写成 plan.md 并记一个批准标记，写入钩子认标记才放行产品文件；plan 的批准记录不再是「plan.md 在 `main` 上」；「批准 plan」这句留作退路。原因：陪跑原先提的「不用 plan mode、写成文件说一句批准」是 V2 的做法，和 playbook 不符，也和「不带 shell 钩子」那条的理由（plan mode 自己不让写文件）矛盾。（二）「接受 spec」一句同时接受 intent、spec、validation，「接受 intent」在正常档退役。（三）评审行由实现的 session 调脚本记，脚本要求报告文件已落盘；接受「它可以记错」这个界限。
+- 2026-11-19：避免上下文过长靠拆小，不设 R 条数的提问线（owner 23:07：只是在想办法，没必要硬加）。`spec` skill 里只写定性的拆分判断；拆出来的是独立的改动；`docs/measures.md` 每个改动多记 R 条数、改动的文件数、有没有发生上下文压缩。
+- 2026-11-19：查过的文档事实（code.claude.com 的 hooks 页，读了前三分之二）：钩子输入带 `permission_mode`，取值包括 `plan`；`ExitPlanMode` 的 PostToolUse 里 `tool_response` 有 `plan` 和 `filePath` 两个字段，装的是被批准的计划；PostToolUse 在工具成功完成之后运行；手动拒绝许可时 PermissionDenied 不运行，PostToolUseFailure 也不因许可被拒触发。「打回计划时 PostToolUse 不触发」没有明说，留到第一次真实使用里看。
