@@ -29,3 +29,4 @@
 ## 记录
 
 - 2026-11-18-scaffold-content-model（飞猫）· 高风险 · 问答轮数不知道 / 不知道 · plan 后 spec 改动 4 次（R36 的例外、R32 改写、R8、spec 第 5 行的例外句）· plan 二读 1 轮 6 条 Important（复核后 0）；分支评审 1 轮 1 条 Important，之后复核 3 轮都是 0 · code-reviewer：Build 报 15 改 13，验收后的修复轮报 3 改 1 · skill 漏选或错选：无 · R 44 条 · 改动的产品文件 141 个（多数是测试样例）· 上下文压缩：不知道 · owner 坐下来几次 / 被叫到几次：数不清（多 session 的形状，见 `docs/pilot.md` 11-19 22:02 owner 的判断）· 验收 6 步 1 失败（品牌名），修复后重验 1 步 0 失败；这次走完之后改成一个改动一个 session
+- 2026-11-20-sync-review-md（飞猫）· 小改动（owner 没改）· Fable 的建议：无 · 问答：小改动没有 · plan 后 spec 改动：小改动没有 spec · 评审：verifier（Opus）一轮，Important 0、Nit 1，行为没变 · code-reviewer 报 0 条 · skill 漏选或错选：无 · R 条数：无 · 改动的产品文件 1 个（REVIEW.md）· 上下文压缩：不知道 · owner 坐下来 1 次、点击 2 次，中途被叫到 0 次 · 新形状下的第一次真实使用；记了 3 条待办（都是飞猫的 CLAUDE.md 落后于模板）

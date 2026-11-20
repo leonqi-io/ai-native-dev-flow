@@ -50,11 +50,11 @@
 | review | `/flow:review` | 「评审一下这个分支」 | `plugin/evals/pick-review/` | 通过 |
 | setup-project | `/flow:setup-project` | 「给这个项目立项」 | `plugin/evals/pick-setup-project/` | 通过 |
 | small-change | `/flow:small-change` | 「这个按小改动处理：页脚的年份写错了」 | `plugin/evals/pick-small-change/` | 通过 |
-| spec | `/flow:spec` | 「intent 已经接受了，开始写 spec」 | `plugin/evals/pick-spec/` | 通过 |
+| spec | `/flow:spec` | 「intent 写好了，开始写 spec」 | `plugin/evals/pick-spec/` | 通过 |
 | todo | `/flow:todo` | 「记一条待办：手机上导航栏会换行」 | `plugin/evals/pick-todo/` | 通过 |
 | validate | `/flow:validate` | 「带我走一遍验收」 | `plugin/evals/pick-validate/` | 通过 |
 
-生成依据：`plugin/evals/results/2026-11-18T16-57-50-202Z/`，Claude Code 2.1.327。
+生成依据：`plugin/evals/results/2026-11-20T05-51-07-979Z/`，Claude Code 2.1.329。
 <!-- generated:phrasings:end -->
 
 每个 skill 只测一种说法，因为这套流程主要是我们自己用，忘了可以来查，查不到还有 `/flow:<名字>`。

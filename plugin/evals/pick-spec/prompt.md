@@ -5,4 +5,4 @@ max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
 
-intent 已经接受了，开始写 spec
+intent 写好了，开始写 spec
