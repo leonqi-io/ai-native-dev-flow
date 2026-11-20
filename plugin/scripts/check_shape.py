@@ -18,10 +18,10 @@ import flowlib
 HEADINGS = {
     "intent": ["Problem", "Proposed outcome", "Affected users and systems", "Constraints", "Open questions", "Source"],
     "intent-small": ["Problem", "Outcome", "Must not change", "Source"],
-    "spec": ["Requirements", "Design", "Constraint trace", "Open-question trace", "Codebase facts", "Concerns"],
+    "spec": ["Requirements", "Design", "Constraint trace", "Open-question trace", "Fact values", "Codebase facts", "Concerns"],
     "validation": ["§0", "§1", "Leftovers", "Approval log"],
     "validation-small": ["What changed", "Verify", "Review", "Leftovers", "Approval log"],
-    "plan": ["Files that change", "Order of work", "Risks", "Proof"],
+    "plan": ["For the owner", "Files that change", "Order of work", "Risks", "Proof", "Spec changed after acceptance", "Departures"],
     "mission": ["Who", "What they bring", "What they leave with", "What they do in between", "What this does not do"],
     "decisions": ["Decisions", "Cost of a bad release"],
     "roadmap": ["Planned stages", "To do", "Known limits"],

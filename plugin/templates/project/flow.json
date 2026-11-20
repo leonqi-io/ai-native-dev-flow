@@ -1,4 +1,5 @@
 {
+  "//": "deploys: true only while a merge publishes now — it turns true in the change that connects the pipeline.",
   "test_scope": ["tests/**"],
   "deploys": false,
   "pull_request": false,

@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""PreToolUse hook for Edit / Write: presence checks and the test-file lock.
+"""PreToolUse hook for Edit / Write: presence checks, and the plan approval mark.
 
 Presence checks (deny, the reason names the route) — they look only at
-whether the earlier approval file is on `main`, never at its content:
-  spec.md / validation.md   need intent.md on `main`
+whether the earlier approval is recorded, never at its content:
+  spec.md / validation.md   need intent.md with its 'Tier:' line (normal, high-risk)
   plan.md                   needs spec.md and validation.md on `main`
-  product files             need plan.md on `main` (small change: intent.md)
+  product files             need the plan approval mark (small change: intent.md on `main`)
+  plan-approved.txt         never written by a tool: only the plan approval writes it
 Product file = anything outside specs/, CLAUDE.md and the project's
 `non_product_paths`.
 
-Test-file lock (ask): while the lock is on, an edit to a path in the
-project's `test_scope` prompts the owner. The lock is on from the commit of
-red-run.txt (normal, high-risk) or for the whole branch (small change).
+Test files are not held here: since 2026-11-19 a change to a locked test
+file asks nobody; the session records a `test-release:` line and the close
+check (check_test_scope.py) refuses a changed test file that has none.
 
 Where the repository has no .claude/flow.json, or the project is not set up
 yet, the hook does nothing.
@@ -25,15 +26,16 @@ import sys
 import flowlib
 
 CHAIN_FILE = re.compile(r"^specs/([^/]+)/(spec|validation|plan)\.md$")
+MARK_FILE = re.compile(r"^specs/[^/]+/%s$" % re.escape(flowlib.PLAN_MARK))
+PLAN_ROUTE = (
+    "the plan is drafted in plan mode and the owner accepting it there approves it "
+    "(an acceptance that left no mark: the owner types「%s」)" % flowlib.owner_sentence("plan")
+)
 
 
 def decide(decision, reason):
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision, "permissionDecisionReason": reason}}, ensure_ascii=False))
     sys.exit(0)
-
-
-def owner_line(what):
-    return flowlib.owner_route(what)
 
 
 def check_chain_file(root, name, part):
@@ -43,14 +45,11 @@ def check_chain_file(root, name, part):
         decide("deny", "Write %s/intent.md first, with its 'Tier:' line." % folder)
     if tier == "small" and part in ("spec", "plan"):
         decide("deny", "A small change has no %s.md — only intent.md and validation.md." % part)
-    if part in ("spec", "validation") and not flowlib.on_main(root, folder + "/intent.md"):
-        route = "ask for the one-click confirmation by running accept.py intent" if tier == "small" else owner_line("intent")
-        decide("deny", "intent.md is not on `main` yet ('intent accepted' comes first): %s." % route)
     if part == "plan" and not (flowlib.on_main(root, folder + "/spec.md") and flowlib.on_main(root, folder + "/validation.md")):
-        decide("deny", "spec.md and validation.md are not on `main` yet ('spec accepted' comes first): %s." % owner_line("spec"))
+        decide("deny", "spec.md and validation.md are not on `main` yet ('spec accepted' comes first): %s." % flowlib.owner_route("spec"))
 
 
-def check_product_file(root, config, path):
+def check_product_file(root, path):
     branch = flowlib.current_branch(root)
     folder = flowlib.change_folder(root)
     if not folder or not flowlib.folder_exists(root, folder):
@@ -62,17 +61,14 @@ def check_product_file(root, config, path):
     tier = flowlib.tier_of(root, folder)
     if tier is None:
         decide("deny", "%s/intent.md carries no 'Tier:' line." % folder)
-    if not flowlib.on_main(root, folder + "/intent.md"):
-        route = "ask for the one-click confirmation by running accept.py intent" if tier == "small" else owner_line("intent")
-        decide("deny", "intent.md is not on `main` yet: %s." % route)
-    if tier != "small" and not flowlib.on_main(root, folder + "/plan.md"):
-        decide("deny", "plan.md is not on `main` yet ('plan approved' comes before code and tests): %s." % owner_line("plan"))
-    if flowlib.matches(path, config["test_scope"]) and flowlib.test_lock_on(root, folder, tier):
-        decide(
-            "ask",
-            "Test file in the locked scope: %s\nThe red run is committed (small change: the whole branch is locked). Approve only "
-            "a legitimate test fix; the agent then records 'test-release: %s — why — which §1 row' in the Approval log." % (path, path),
-        )
+    if tier == "small":
+        if not flowlib.on_main(root, folder + "/intent.md"):
+            decide("deny", "intent.md is not on `main` yet: ask for the one-click confirmation by running accept.py intent.")
+        return
+    if not flowlib.on_main(root, folder + "/spec.md"):
+        decide("deny", "The spec is not accepted yet ('spec accepted', then the plan, come before code and tests): %s." % flowlib.owner_route("spec"))
+    if not flowlib.plan_approved(root, folder):
+        decide("deny", "The plan is not approved yet (it comes before code and tests): %s." % PLAN_ROUTE)
 
 
 def main():
@@ -92,13 +88,15 @@ def main():
     config = flowlib.load_config(root)
     if config is None or not flowlib.is_setup(root):
         return
+    if MARK_FILE.match(path):
+        decide("deny", "%s is the plan approval mark: only the plan approval writes it — %s." % (path, PLAN_ROUTE))
     chain = CHAIN_FILE.match(path)
     if chain:
         check_chain_file(root, chain.group(1), chain.group(2))
         return
     if flowlib.is_non_product(path, config):
         return
-    check_product_file(root, config, path)
+    check_product_file(root, path)
 
 
 if __name__ == "__main__":

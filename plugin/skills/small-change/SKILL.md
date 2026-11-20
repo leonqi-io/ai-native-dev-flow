@@ -27,11 +27,11 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
 
 4. **Then, without stopping:**
    - write `validation.md` from `${CLAUDE_PLUGIN_ROOT}/templates/change/validation-small.md`;
-   - make the change. The test files are locked for the whole branch: no new tests, and an existing test is not edited to pass. (A genuinely wrong test: the edit prompts the owner; then add `- <date time> · test-release: <path> — <why>` to the Approval log.)
+   - make the change. The test files are locked for the whole branch: no new tests, and an existing test is not edited to pass. (A genuinely wrong test: change it and record `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/record.py" test-release <path> --why "<why>"` — nobody is asked; the verifier checks it.)
    - run the verify command and paste its literal output under "Verify";
    - run the `code-reviewer` subagent and fix what it reports;
-   - run the `verifier` subagent — **its brief is the change folder's name and nothing else**. It reads the intent on `main` and the diff itself and runs `REVIEW.md`'s fixed checks, including "did this small change alter behaviour". Write its result under "Review", fix every Important finding and run it again;
-   - append `- <date time> · review (verifier) · Important open: <n>` to the Approval log, with the verifier's own count;
+   - commit, then run the `verifier` subagent in the foreground — **its brief is the change folder's name and nothing else**. It reads the intent on `main` and the diff itself and runs `REVIEW.md`'s fixed checks, including "did this small change alter behaviour". Write its report to `specs/<folder>/reports/verify-<n>.md` and its result under "Review"; fix every Important finding and run it again;
+   - record the verifier's own count: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/record.py" review --by verifier --important <n> --nit <n> --report specs/<folder>/reports/verify-<n>.md`. The line records the commit checked; a product change after it means running the verifier again (the merge refuses otherwise). The verifier runs on its own fixed model (Opus), not on this session's;
    - fill "Leftovers" (each one points to a new intent or to the roadmap; `- None.` otherwise) and commit.
 
    If the verifier answers that behaviour changed: stop. This is a normal change — say so and start over with the `intent` skill.
@@ -48,5 +48,5 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
 
 ## Rules
 - Speak to the owner in the owner's language.
-- The next fresh-session review reads this change again ("did behaviour change") — the independent look is deferred, not dropped.
+- A fresh-session review, when the owner asks for one, reads the small changes merged since the last one again ("did behaviour change"); the state report counts them until then.
 - Not for files that are not product (notes, the roadmap's status line, corrections to CLAUDE.md): those are committed directly on a working branch with the reason in the message.

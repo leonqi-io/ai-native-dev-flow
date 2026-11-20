@@ -3,9 +3,14 @@
 Spec: `specs/<folder>/spec.md`
 
 ## §0 Owner's part
-<!-- The only part the owner reads, and the one he runs at validation.
-Every step is a block he can paste, followed by one sentence of expected result.
-A step whose result does not match is a fail — there is no separate "fails" list. -->
+<!-- Two parts, shown together on the end screen.
+Inventory: what can be counted or compared — run a command, compare its output, count what a page shows.
+The session does every step itself (terminal or browser) and lists the results; the owner glances at the list.
+Judgments: what only the owner can answer. Each carries an ID and one sentence on what a right answer shows.
+Strike a question whose object is test material, that is already ruled, or whose right answer shows nothing.
+The owner may answer "not judged": recorded, with a Leftovers line saying where the question goes. -->
+
+### Inventory (done by the session)
 
 **One-time setup**
 
@@ -13,8 +18,6 @@ A step whose result does not match is a fail — there is no separate "fails" li
 <command>
 ```
 Expected: <one sentence>.
-
-**Steps**
 
 1. <what this step shows> (R1)
 
@@ -25,7 +28,8 @@ Expected: <one sentence>.
 
 **Do not touch:** <real data or a real environment that has to stay as it is — or "nothing">.
 
-**Judgments asked of the owner:** <what only a person can judge: wording, layout, "does this read right"> (R2)
+### Judgments (the owner's)
+- **J1** <a question only a person can answer: wording, layout, "does this read right"> (R2) — a right answer shows: <what>.
 
 ## §1 Test requirements
 <!-- One row per asserted behaviour. The plan names and counts the tests from this table,
@@ -58,7 +62,5 @@ Write "- None." when nothing is left. -->
 - None.
 
 ## Approval log
-<!-- Appended, never rewritten. Lines the scripts read (each written as a list item):
-  <date time> · review (fresh session) · Important open: 0 · Nit: 2
-  <date time> · test-release: <path> — <why> — §1 row <T-ID>
-Other entries are free text: what was approved, by whom, when. -->
+<!-- Appended, never rewritten. The lines the scripts read are written by record.py (review, validation,
+test-release, ruling); its docstring has their form. Other entries are free text. -->

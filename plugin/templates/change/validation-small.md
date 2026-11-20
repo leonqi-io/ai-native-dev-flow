@@ -21,7 +21,6 @@ Findings tagged Important or Nit, or "No findings." -->
 - None.
 
 ## Approval log
-<!-- Appended, never rewritten. Lines the scripts read (each written as a list item):
-  <date time> · review (verifier) · Important open: 0
-  <date time> · test-release: <path> — <why>
-  <date time> · small-change read (fresh session) · behaviour changed: no      (added later by the next fresh-session review) -->
+<!-- Appended, never rewritten. The review and test-release lines are written by record.py
+(record.py review --by verifier ...). Added later, by a fresh-session review if the owner asks for one:
+  <date time> · small-change read (fresh session) · behaviour changed: no -->

@@ -8,7 +8,8 @@ Three kinds of answer:
          approves the prompt (accept.py intent for a small change, merge.py
          for a small change, roadmap_edit.py);
   allow  the plugin's read-only scripts and `--check` runs, todo_add.py
-         (append-only) and sync_main.py (a fast-forward to origin/main).
+         (append-only), sync_main.py (a fast-forward to origin/main) and
+         record.py (a line in the change's own Approval log).
 Everything else: no decision (the normal permission flow applies).
 
 The owner's own way to approve does not pass through this hook: he types the
@@ -34,7 +35,7 @@ OWN_CALL = re.compile(r"""^\s*python3?\s+(?:"([^"]+)"|'([^']+)'|(\S+))(?:\s+(.*)
 SHELL_JOIN = re.compile(r"[;&|<>`\n]|\$\(")
 ON_MAIN_VERBS = {"commit", "merge", "rebase", "reset", "revert", "cherry-pick", "am", "pull"}
 OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
-ALLOWED = {"todo_add", "sync_main"}
+ALLOWED = {"todo_add", "sync_main", "record"}
 GH_PR_MERGE = re.compile(r"(?:^|[\s;&|(`])gh\s+pr\s+merge\b")
 
 
@@ -47,7 +48,7 @@ def routes():
     sentences = "".join("「%s」" % flowlib.owner_sentence(act) for act in ("setup", "intent", "spec", "plan", "merge"))
     return (
         "In this flow `main` moves only by the owner's act; do not look for another way to run this. Routes: "
-        "an approval (project setup / intent / spec + validation / plan) or a merge -> the owner types its sentence in the chat "
+        "an approval (project setup / intent, spec and validation / plan) or a merge -> the owner types its sentence in the chat "
         "as a message of its own (%s), or runs accept.py / merge.py in his own terminal; "
         "bringing `main` up to date with origin -> `%s`; "
         "a finding to record -> `%s`."
@@ -64,6 +65,13 @@ def own_script(command):
     if os.path.dirname(os.path.realpath(path)) != flowlib.scripts_dir() or not path.endswith(".py"):
         return None, None
     return os.path.basename(path)[:-3], (found.group(4) or "").strip()
+
+
+def owner_act_of(accept_arguments):
+    """The owner's approval an `accept.py` call of a normal or high-risk change stands for."""
+    if accept_arguments in ("spec", "plan"):
+        return accept_arguments
+    return "spec"  # `intent`, or anything else: the intent is accepted with the spec
 
 
 def clip(text, limit):
@@ -95,7 +103,7 @@ def handle_own(name, arguments, root, config):
     if name == "accept" and arguments == "setup":
         decide("deny", "Accepting the project setup is the owner's act: %s. Do not look for another way to run it." % flowlib.owner_route("setup"))
     if tier != "small":
-        act = "merge" if name == "merge" else (arguments if arguments in flowlib.OWNER_SENTENCES else "intent")
+        act = "merge" if name == "merge" else owner_act_of(arguments)
         decide(
             "deny",
             "%s.py is the owner's act for the %s tier: %s. Do not look for another way to run it."
@@ -120,8 +128,8 @@ def handle_own(name, arguments, root, config):
         refusals = [line for line in precheck.stdout.splitlines() if line.startswith(("FAIL", "REFUSED"))]
         decide("deny", "merge.py would refuse this merge — fix these first:\n" + "\n".join(refusals))
     base = flowlib.merge_base(root)
-    stat =flowlib.git_out(["diff", "--stat", base, "HEAD"], cwd=root) if base else "(no merge base with main)"
-    publishes = "Merging publishes to production.\n\n" if config["deploys"] else ""
+    stat = flowlib.git_out(["diff", "--stat", base, "HEAD"], cwd=root) if base else "(no merge base with main)"
+    publishes = "Merging publishes to production (`deploys` is true in .claude/flow.json).\n\n" if config["deploys"] else ""
     decide(
         "ask",
         "Merge this small change into `main`?\n\n%sIntent:\n%s\n\nChanged files:\n%s" % (publishes, clip(intent, 900), clip(stat, 1200)),

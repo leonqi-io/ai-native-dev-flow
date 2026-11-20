@@ -1,5 +1,5 @@
 {
-  "description": "flow: approval records on main, the owner's approval sentences, presence checks, the test-file lock, the state report at session start",
+  "description": "flow: approval records on main, the owner's approval sentences, the plan approval in plan mode, presence checks, the state report at session start",
   "hooks": {
     "SessionStart": [
       {
@@ -8,7 +8,10 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/state.py", "--hook"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/state.py",
+              "--hook"
+            ],
             "timeout": 20
           }
         ]
@@ -20,7 +23,9 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_user_prompt.py"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/hook_user_prompt.py"
+            ],
             "timeout": 120
           }
         ]
@@ -33,7 +38,9 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_pretool_bash.py"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/hook_pretool_bash.py"
+            ],
             "timeout": 20
           }
         ]
@@ -44,7 +51,9 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_pretool_write.py"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/hook_pretool_write.py"
+            ],
             "timeout": 20
           }
         ]
@@ -55,7 +64,24 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook_user_prompt.py"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/hook_user_prompt.py"
+            ],
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/hook_plan_approved.py"
+            ],
             "timeout": 20
           }
         ]

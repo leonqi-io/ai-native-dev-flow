@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Plan drift: did the change touch a product file the plan does not list?
 
-plan.md's "Files that change" section lists paths (or globs) in backticks.
+plan.md's "Files that change" section lists paths (or globs) in backticks,
+in its list items — on the item's own line or on the indented lines that
+continue it. Square brackets in a path are literal (`pages/[slug].astro`).
 A departure from the plan is fine when plan.md is updated in the same commit;
 this check refuses a product file that changed on the branch and is nowhere
 in that list. A listed file that did not change is only reported.
@@ -17,6 +19,19 @@ import flowlib
 BACKTICKED = re.compile(r"`([^`]+)`")
 
 
+def listed_paths(section_text):
+    """Backticked entries of the section's list items, continuation lines included."""
+    listed, inside_item = [], False
+    for line in (section_text or "").splitlines():
+        if line.startswith("- "):
+            inside_item = True
+        elif not (inside_item and line[:1].isspace() and line.strip()):
+            inside_item = False
+            continue
+        listed.extend(BACKTICKED.findall(line))
+    return listed
+
+
 def run(root, folder, config=None):
     """(problems, notes)"""
     config = config or flowlib.load_config(root)
@@ -24,9 +39,7 @@ def run(root, folder, config=None):
     listed_text = flowlib.section(plan, "Files that change")
     if listed_text is None:
         return ["plan.md has no '## Files that change' section"], []
-    listed = []
-    for line in flowlib.bullets(listed_text):
-        listed.extend(BACKTICKED.findall(line))
+    listed = listed_paths(listed_text)
     base = flowlib.merge_base(root)
     if not base:
         return ["cannot find where this branch left `main`"], []

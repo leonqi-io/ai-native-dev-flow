@@ -22,6 +22,14 @@ Every R-ID has to be cited in validation.md §0, §1 or §2 — a script refuses
 |---|---|
 | <question> | <answer, or C1> |
 
+## Fact values
+<!-- Every value the product will show or store that comes from outside the code — a name, a price, an address,
+a text someone approved. The owner confirms each one at the start; a value nobody confirmed is not built in.
+"Confirmed as" says whether the wording itself was approved (content) or only where it sits (layout). -->
+| Value | Source | Confirmed by | Confirmed as |
+|---|---|---|---|
+| <value> | <where it comes from> | <who, date — or "open"> | <content / layout> |
+
 ## Codebase facts
 <!-- Reported by the researcher: each fact with file, line and the HEAD it was read at. -->
 - <fact> — `<path>:<line>` at <sha>

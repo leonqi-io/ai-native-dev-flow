@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Accept: put an approval on `main` — the approval record of the flow.
+"""Accept: record an approval — on `main` for setup, intent and spec; on the branch for the plan.
 
     accept.py setup    project setup. On the branch `setup`: the whole branch
                        lands on `main`. On any other branch (a later
                        amendment): the project files only.
-    accept.py intent   specs/<branch>/intent.md                    "intent accepted"
-    accept.py spec     specs/<branch>/spec.md + validation.md      "spec accepted"
-    accept.py plan     specs/<branch>/plan.md                      "plan approved"
+    accept.py intent   small change only: specs/<branch>/intent.md          "intent accepted"
+    accept.py spec     specs/<branch>/intent.md + spec.md + validation.md  "spec accepted"
+                       (a normal or high-risk intent is accepted with them)
+    accept.py plan     fallback of the plan approval: the plan approval mark,
+                       committed on the working branch                       "plan approved"
 
     accept.py <what> --check    run every refusal check and show what would
-                                land on `main`; change nothing
+                                be recorded; change nothing
 
 Who runs it:
   the owner — by typing the approval sentence alone in the chat (the
@@ -18,10 +20,16 @@ Who runs it:
   prompt the owner approves with one click.
   `--check` changes nothing and may be run by anyone.
 
-It refuses unless the files are committed on the working branch, have the
-shape of their template, and (for `spec`) every R-ID is covered. It then
-commits exactly those files onto `main` and merges `main` back into the
-working branch, so the branch contains its own approval commits.
+The plan is approved when the owner accepts it in plan mode
+(hook_plan_approved.py writes plan.md and the mark). `accept.py plan` is for
+an acceptance that left no mark: it refuses unless plan.md is committed
+unchanged on the branch, then writes the same mark.
+
+For setup, intent and spec it refuses unless the files are committed on the
+working branch, have the shape of their template, and (for `spec`) every
+R-ID is covered. It then commits exactly those files onto `main` and merges
+`main` back into the working branch, so the branch contains its own approval
+commits.
 
 Project setup on the branch `setup` is different on purpose: everything
 written at setup belongs to it (an inventory, a note the CLAUDE.md points
@@ -40,7 +48,7 @@ import flowlib
 
 SETUP_BRANCH = "setup"
 SETUP_EXTRAS = ["CLAUDE.md", "REVIEW.md", flowlib.CONFIG_PATH, ".claude/settings.json"]
-MESSAGES = {"intent": "intent accepted", "spec": "spec accepted", "plan": "plan approved"}
+MESSAGES = {"intent": "intent accepted", "spec": "spec accepted"}
 
 
 def fail(sentence):
@@ -55,7 +63,7 @@ def files_for(root, what, folder):
     if what == "intent":
         return [folder + "/intent.md"]
     if what == "spec":
-        return [folder + "/spec.md", folder + "/validation.md"]
+        return [folder + "/intent.md", folder + "/spec.md", folder + "/validation.md"]
     return [folder + "/plan.md"]
 
 
@@ -146,6 +154,43 @@ def accept_setup_branch(root, check_only):
     return 0
 
 
+def chain_refusal(what, folder, tier):
+    """Why this approval cannot be given for the change's tier and state, or None."""
+    if tier is None:
+        return "%s/intent.md is missing or carries no 'Tier:' line" % folder
+    if what in ("spec", "plan") and tier == "small":
+        return "a small change has no spec.md and no plan.md"
+    if what == "intent" and tier != "small":
+        return ("the intent of a %s change is accepted together with its spec and validation: "
+                "the owner types「%s」once the three are committed" % (tier, flowlib.owner_sentence("spec")))
+    return None
+
+
+def accept_plan(root, folder, check_only):
+    """Fallback of the plan approval: write the mark for the committed plan.md."""
+    refusal = flowlib.plan_approval_refusal(root, folder)
+    if refusal and "already approved" in refusal:
+        print("nothing to do: %s" % refusal)
+        return 0
+    if refusal:
+        return fail(refusal)
+    plan = folder + "/plan.md"
+    if flowlib.read_worktree(root, plan) is None:
+        return fail("%s does not exist: the plan is drafted in plan mode, and accepting it there approves it" % plan)
+    if flowlib.git_out(["status", "--porcelain", "--", plan], cwd=root):
+        return fail("%s has uncommitted changes: commit the plan the owner read, then approve it" % plan)
+    problems = shape_problems(root, "plan", [plan], flowlib.tier_of(root, folder))
+    if problems:
+        return fail("\n  ".join(["the plan is not ready:"] + problems))
+    if check_only:
+        print("plan approved: %s — the mark %s would be committed on the working branch" % (folder.rsplit("/", 1)[-1], flowlib.plan_mark(folder)))
+        print("accept plan --check: nothing refuses; nothing was changed")
+        return 0
+    for line in flowlib.record_plan_approval(root, folder, "「%s」" % flowlib.owner_sentence("plan")):
+        print(line)
+    return 0
+
+
 def main():
     arguments = sys.argv[1:]
     check_only = arguments[1:] == ["--check"]
@@ -169,14 +214,11 @@ def main():
         if not flowlib.is_setup(root):
             return fail("the project is not set up: mission.md, decisions.md and roadmap.md are not all on `main`")
         tier = flowlib.tier_of(root, folder)
-        if tier is None:
-            return fail("%s/intent.md is missing or carries no 'Tier:' line" % folder)
-        if what in ("spec", "plan") and tier == "small":
-            return fail("a small change has no spec.md and no plan.md")
-        if what == "spec" and not flowlib.on_main(root, folder + "/intent.md"):
-            return fail("intent.md is not on `main` yet — 'intent accepted' comes first")
-        if what == "plan" and not (flowlib.on_main(root, folder + "/spec.md") and flowlib.on_main(root, folder + "/validation.md")):
-            return fail("spec.md and validation.md are not on `main` yet — 'spec accepted' comes first")
+        refusal = chain_refusal(what, folder, tier)
+        if refusal:
+            return fail(refusal)
+        if what == "plan":
+            return accept_plan(root, folder, check_only)
     files = files_for(root, what, folder)
     missing = [path for path in files if flowlib.read_worktree(root, path) is None]
     if missing:

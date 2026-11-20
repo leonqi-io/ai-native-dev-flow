@@ -2,10 +2,12 @@
 
 Standard library only, Python 3.9+. Every script in this directory imports
 from here, so the rules that several of them need (where the approval record
-is read, how the tier is found, how a commit reaches `main`) exist once.
+is read, how the tier is found, how the plan approval is marked, how a commit
+reaches `main`) exist once.
 """
 
 import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -31,6 +33,11 @@ ROADMAP = "specs/roadmap.md"
 BUILT_IN_NON_PRODUCT = ["specs/**", "CLAUDE.md"]
 REQUIRED_CONFIG_KEYS = ["test_scope", "deploys", "pull_request"]
 TIERS = ("small", "normal", "high-risk")
+# Inside a change folder: the file that marks the plan as approved (written only
+# by the plan approval — see record_plan_approval), and the folder the
+# subagents' reports are written to.
+PLAN_MARK = "plan-approved.txt"
+REPORTS = "reports"
 # Seconds a git command that talks to origin may take before it counts as failed.
 # Basis: such a command normally answers within a few seconds; the approval hook
 # gives a whole script 100 seconds (hook_user_prompt.py), and a merge makes up
@@ -40,6 +47,9 @@ NETWORK_TIMEOUT = 20
 # The owner's approval sentences. Typed alone as a whole chat message, one of
 # these makes the UserPromptSubmit hook run the matching script — no terminal.
 # The first sentence of each list is the one the reports and the skills show.
+# "intent" is a small change's sentence only: a normal or high-risk intent is
+# accepted together with its spec and validation, by "spec". "plan" is the
+# fallback for a plan approval that left no mark in plan mode.
 OWNER_SENTENCES = {
     "setup": ["接受立项", "立项接受", "accept setup", "accept the setup"],
     "intent": ["接受 intent", "intent 接受", "accept intent", "accept the intent"],
@@ -301,10 +311,19 @@ def load_config(root):
     return config
 
 
+def literal_brackets(pattern):
+    """The pattern with `[` and `]` made literal for fnmatch.
+
+    Some frameworks put square brackets in file names (`pages/[slug].astro`);
+    read as a character class, such a path would never match itself.
+    """
+    return re.sub(r"[\[\]]", lambda found: "[%s]" % found.group(0), pattern)
+
+
 def matches(path, patterns):
-    """Glob match on a repo-relative path; `*` and `**` both cross directory separators."""
+    """Glob match on a repo-relative path; `*` and `**` both cross directory separators, brackets are literal."""
     path = path.replace(os.sep, "/")
-    return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
+    return any(fnmatch.fnmatch(path, literal_brackets(pattern)) for pattern in patterns)
 
 
 def is_non_product(path, config):
@@ -359,11 +378,58 @@ def red_commit(root, folder):
     ) or None
 
 
-def test_lock_on(root, folder, tier):
-    """Small change: locked for the whole branch. Other tiers: from the red commit."""
-    if tier == "small":
-        return True
-    return red_committed(root, folder)
+# ------------------------------------------------------------ plan approval
+#
+# The plan is approved when the owner accepts it in plan mode (the PostToolUse
+# hook of ExitPlanMode), or, as a fallback, by「批准 plan」. Either way the
+# approval is a mark file in the change folder, committed on the working
+# branch; `main` does not move. The Edit/Write hook refuses to write the mark,
+# so only these two routes create it.
+
+
+def plan_mark(folder):
+    return "%s/%s" % (folder, PLAN_MARK)
+
+
+def plan_approved(root, folder):
+    return read_worktree(root, plan_mark(folder)) is not None
+
+
+def plan_approval_refusal(root, folder):
+    """Why a plan cannot be approved for this folder now, or None when it can."""
+    if not folder or not folder_exists(root, folder):
+        return "this branch has no change folder"
+    tier = tier_of(root, folder)
+    if tier not in ("normal", "high-risk"):
+        return "%s/intent.md is not a normal or high-risk intent (a small change has no plan)" % folder
+    if not (on_main(root, folder + "/spec.md") and on_main(root, folder + "/validation.md")):
+        return "the spec is not accepted yet — 「%s」 comes before the plan" % owner_sentence("spec")
+    if plan_approved(root, folder):
+        return "the plan is already approved (%s)" % read_worktree(root, plan_mark(folder)).strip()
+    return None
+
+
+def record_plan_approval(root, folder, how, plan_text=None):
+    """Write the mark (and plan.md, when the approved text is given) and commit the two on the branch.
+
+    Returns the sentences to print. The mark counts once it is in the working
+    tree; a commit that fails is reported, not raised.
+    """
+    plan_path = folder + "/plan.md"
+    if plan_text is not None:
+        with open(os.path.join(root, plan_path), "w", encoding="utf-8") as handle:
+            handle.write(plan_text if plan_text.endswith("\n") else plan_text + "\n")
+    with open(os.path.join(root, plan_mark(folder)), "w", encoding="utf-8") as handle:
+        handle.write("plan approved · %s · %s · plan.md sha256 %s\n" % (how, now_stamp(), digest(read_worktree(root, plan_path) or "")))
+    paths = [plan_path, plan_mark(folder)]
+    git(["add", "--"] + paths, cwd=root)
+    committed = git(["commit", "-q", "-m", "plan approved: %s" % folder.rsplit("/", 1)[-1], "--"] + paths, cwd=root)
+    lines = ["plan approved (%s): %s and %s" % (how, plan_path, plan_mark(folder))]
+    if committed.returncode == 0:
+        lines.append("committed on the working branch (%s); `main` does not move" % git_out(["rev-parse", "--short", "HEAD"], cwd=root))
+    else:
+        lines.append("NOTE: written but not committed (%s); commit the two files with the next commit" % committed.stderr.strip())
+    return lines
 
 
 # ------------------------------------------------------------ markdown parts
@@ -418,7 +484,7 @@ def todo_lines(roadmap_text):
     return [line for line in bullets(section(roadmap_text, "To do")) if TODO_LINE.match(line)]
 
 
-def edit_section(text, heading_start, edit):
+def edit_section(text, heading_start, edit, file_label=ROADMAP):
     """Apply edit(list_of_lines) -> list_of_lines to one `## ` section and return the new text."""
     lines = text.splitlines()
     start = end = None
@@ -430,7 +496,7 @@ def edit_section(text, heading_start, edit):
             if line[3:].strip().lower().startswith(heading_start.lower()):
                 start = index + 1
     if start is None:
-        raise FlowError("%s has no '## %s' section" % (ROADMAP, heading_start))
+        raise FlowError("%s has no '## %s' section" % (file_label, heading_start))
     if end is None:
         end = len(lines)
     body = edit(lines[start:end])
@@ -493,6 +559,22 @@ def commit_to_main(root, changes, message):
 
 
 # --------------------------------------------------------------------- misc
+
+
+def digest(text):
+    """First 12 hex digits of the text's sha256: enough to tell two versions of a file apart."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def uncommitted_product_paths(root, config):
+    """Product files with changes not committed yet (tracked or untracked)."""
+    paths = []
+    # Not git_out: its strip would eat the status column of the first line.
+    for line in git(["status", "--porcelain", "--untracked-files=all"], cwd=root).stdout.splitlines():
+        path = line[3:].split(" -> ")[-1].strip('"')
+        if path and not is_non_product(path, config):
+            paths.append(path)
+    return paths
 
 
 def now_stamp():

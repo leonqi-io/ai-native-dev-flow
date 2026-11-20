@@ -38,6 +38,8 @@ import close_check
 import flowlib
 
 GH_TIMEOUT = 30  # seconds per `gh` call; same reasoning as flowlib.NETWORK_TIMEOUT
+# `deploys` says whether a merge publishes now (ruled 2026-11-19); it turns true in the change that connects the pipeline.
+PUBLISHES = "the merge publishes (`deploys` is true in .claude/flow.json): the deploy pipeline runs now"
 
 
 def fail(sentence):
@@ -122,7 +124,7 @@ def merge_through_pr(root, branch, config, check_only):
         return fail("`gh pr merge` did not succeed — nothing is merged:\n%s" % (merged.stderr.strip() if merged else "gh is not installed"))
     print("merged %s on GitHub (%s)" % (label, request.get("url", "")))
     if config["deploys"]:
-        print("the merge publishes: the deploy pipeline runs now")
+        print(PUBLISHES)
     try:
         note = flowlib.sync_main(root)
     except flowlib.FlowError as error:
@@ -211,9 +213,9 @@ def main():
         return 1
     if config["deploys"]:
         if flowlib.has_origin(root):
-            print("the merge publishes: the deploy pipeline runs now")
+            print(PUBLISHES)
         else:
-            print("NOTE: this project's merge is meant to publish, but there is no `origin` remote; nothing was pushed")
+            print("NOTE: `deploys` is true in .claude/flow.json, but there is no `origin` remote; nothing was pushed, nothing published")
     return tidy(root, branch)
 
 

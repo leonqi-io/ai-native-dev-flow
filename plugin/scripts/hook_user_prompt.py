@@ -32,6 +32,14 @@ import sys
 
 import flowlib
 
+# After an approval the session carries on without waiting (ruled 2026-11-19); the owner can interrupt.
+NEXT_STEP = {
+    "setup": "carry on with the next step of the flow",
+    "intent": "carry on with the small change without another stop, up to the merge prompt",
+    "spec": "carry on in this session with the plan: enter plan mode and draft plan.md (skill: plan); the owner accepting the plan there approves it",
+    "plan": "carry on in this session with the implementation (skill: implement)",
+    "merge": "the change is merged; nothing follows in this change",
+}
 RUN_TIMEOUT = 100  # seconds for the script; hooks.json gives this hook 120 (the event's default of 30 is too short for a merge that pushes)
 SHOWN_TO_OWNER = 700  # characters of the script's output in the message the owner sees: enough for a setup's file list, short enough to read at a glance
 
@@ -101,7 +109,7 @@ def run_approval(data):
     if code == 0:
         instruction = (
             "This approval is given and recorded. Do not run accept.py or merge.py yourself. "
-            "Tell the owner the result in one line, then carry on with the next step of the flow."
+            "Tell the owner the result in one line; then %s." % NEXT_STEP[act]
         )
     else:
         instruction = (

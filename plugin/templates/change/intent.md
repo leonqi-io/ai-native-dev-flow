@@ -2,9 +2,10 @@
 
 Tier: normal
 <!-- normal | high-risk (a small change uses intent-small.md).
-High risk = the change touches any of: an irreversible data change · credentials or personal data ·
-public release or deploy configuration · a stored or emitted data shape.
-The tier is set once and is not changed after the intent is accepted. -->
+High risk = a mistake would cost a lot; usually one of: an irreversible change to data · credentials or
+personal data · public release or deploy configuration · the stored or emitted shape of data that already
+exists for real. The session proposes the tier, the owner confirms it on the spec's one screen; it is not
+changed after the intent is accepted. -->
 
 ## Problem
 <What is wrong or missing today, and for whom. Carry a number: how often, how many, how long.>

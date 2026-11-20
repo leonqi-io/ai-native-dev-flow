@@ -4,14 +4,19 @@
 Runs, for the current branch's change folder:
   shape        every artifact of the tier has its sections
   R-ID         every R-ID of spec.md is cited in validation.md §0 / §1 / §2   (normal, high-risk)
-  test scope   no unreleased change to a test file since the lock started
+  test scope   no unreleased change to an existing test file since the lock started
   plan drift   no changed product file missing from plan.md                    (normal, high-risk)
   leftovers    every leftover points to a new intent or to the roadmap
-  review       the Approval log's latest review entry has no open Important finding
+  review       the Approval log's latest review line has no open Important finding,
+               its report is on disk, and no product file changed after the
+               commit it records
+  validation   the latest validation line answers every judgment of §0, none
+               failed, and each one not judged has a Leftovers line   (normal, high-risk)
 
-The review entry is a line of the Approval log of this form:
-  - <date time> · review (fresh session) · Important open: 0 · Nit: 2
-  - <date time> · review (verifier) · Important open: 0          (small change)
+The review and validation lines are written by record.py, which also reads
+them; the forms are in its docstring. A normal or high-risk change needs its
+latest review from the reviewer subagent (or a fresh session); a small
+change's review is the verifier's.
 
 Usage: close_check.py [<change folder>]        exit 0 = may merge, 1 = refused
 """
@@ -25,21 +30,50 @@ import check_rid_coverage
 import check_shape
 import check_test_scope
 import flowlib
+import record
 
-REVIEW_LINE = re.compile(r"review \((fresh session|verifier)\).*Important open:\s*(\d+)", re.IGNORECASE)
 
-
-def review_problems(root, folder, tier):
-    entries = [REVIEW_LINE.search(line) for line in flowlib.bullets(flowlib.approval_log(root, folder))]
-    entries = [entry for entry in entries if entry]
-    if not entries:
-        return ["the Approval log has no review entry"]
-    kind, important_open = entries[-1].group(1).lower(), int(entries[-1].group(2))
+def review_problems(root, folder, tier, config):
+    review = record.latest_review(flowlib.approval_log(root, folder))
+    if review is None:
+        return ["the Approval log has no review entry (record.py review)"]
     problems = []
-    if tier != "small" and kind != "fresh session":
-        problems.append("the %s tier needs a review from a fresh session; the latest entry is '%s'" % (tier, kind))
-    if important_open:
-        problems.append("%d Important finding(s) still open in the latest review entry" % important_open)
+    if tier != "small" and review["kind"] == "verifier":
+        problems.append("the %s tier needs the reviewer subagent's review (or a fresh session's); the latest entry is the verifier's" % tier)
+    if review["important"]:
+        problems.append("%d Important finding(s) still open in the latest review entry" % review["important"])
+    if review["report"] and flowlib.read_worktree(root, review["report"]) is None:
+        problems.append("the latest review entry points to %s, which is not on disk" % review["report"])
+    return problems + changed_since_review(root, review["at"], config)
+
+
+def changed_since_review(root, reviewed_at, config):
+    """Product files that differ from the commit the latest review line records (committed or not)."""
+    if not reviewed_at:
+        return ["the latest review entry records no commit ('at <hash>'): record it with record.py review"]
+    if not flowlib.is_ancestor(root, reviewed_at, "HEAD"):
+        return ["the commit the latest review entry records (%s) is not in this branch's history: review again" % reviewed_at]
+    listing = flowlib.git_out(["diff", "--name-only", reviewed_at], cwd=root).splitlines()
+    changed = [path for path in listing if not flowlib.is_non_product(path, config)]
+    if not changed:
+        return []
+    return ["product files changed after the latest review (at %s): %s — run the review loop again"
+            % (reviewed_at, ", ".join(changed[:5]) + (" …" if len(changed) > 5 else ""))]
+
+
+def validation_problems(root, folder):
+    answers = record.latest_validation(flowlib.approval_log(root, folder))
+    if answers is None:
+        return ["the Approval log has no validation entry (the end screen's answers: record.py validation)"]
+    validation = flowlib.read_worktree(root, folder + "/validation.md")
+    leftovers = "\n".join(flowlib.bullets(flowlib.section(validation, "Leftovers")))
+    problems = ["%s of §0 has no answer in the latest validation entry" % question
+                for question in record.questions_asked(validation) if question not in answers]
+    for question, answer in sorted(answers.items()):
+        if answer == "fail":
+            problems.append("%s failed in the latest validation entry: fix it, then ask it again" % question)
+        elif answer == "not judged" and not re.search(r"\b%s\b" % question, leftovers):
+            problems.append("%s was not judged and no Leftovers line names it" % question)
     return problems
 
 
@@ -63,7 +97,9 @@ def run(root, folder, config=None):
     if tier != "small":
         results.append(("plan drift", check_plan_drift.run(root, folder, config)[0]))
     results.append(("leftovers", check_leftovers.run(root, folder)))
-    results.append(("review", review_problems(root, folder, tier)))
+    results.append(("review", review_problems(root, folder, tier, config)))
+    if tier != "small":
+        results.append(("validation", validation_problems(root, folder)))
     return results
 
 
