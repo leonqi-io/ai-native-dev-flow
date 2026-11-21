@@ -339,7 +339,7 @@ expect "merge asks" "$ASK" '"ask"'
 expect "merge prompt lists the changed files" "$ASK" "src/app.py"
 PROMPT="$(printf '%s' "$ASK" | python3 -c 'import json,sys; print(json.load(sys.stdin)["hookSpecificOutput"]["permissionDecisionReason"])')"
 expect "merge prompt: the changed files come before the intent" "$(printf '%s' "$PROMPT" | sed -n 2p)" "Changed: "
-expect "merge prompt: the intent is its title only, on the last line" "$(printf '%s' "$PROMPT" | tail -1)" "Intent: "
+expect "merge prompt: the intent is its title only, on the last line" "$(printf '%s' "$PROMPT" | tail -1)" "Intent: Footer year"
 expect "merge prompt: short enough not to fold (10 lines)" "$( [ "$(printf '%s\n' "$PROMPT" | wc -l)" -le 10 ] && echo short )" "short"
 expect "merge (after the click)" "$(python3 "$S/merge.py")" "merged 2026-01-02-footer"
 expect "after the click the checkout is on main" "$(on_branch)" "main"

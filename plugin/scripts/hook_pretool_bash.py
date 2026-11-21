@@ -160,7 +160,9 @@ def merge_prompt(root, intent, publishes):
     owner read the whole intent at the first click — so the changed files lead
     and the intent is its title only.
     """
-    title = next((line.lstrip("# ").strip() for line in (intent or "").splitlines() if line.startswith("# ")), "(no title)")
+    heading = next((line.lstrip("# ").strip() for line in (intent or "").splitlines() if line.startswith("# ")), "(no title)")
+    # The template's heading already reads "Intent: <title>"; do not say the label twice.
+    title = re.sub(r"^Intent:\s*", "", heading)
     lines = ["Merge this small change into `main`?"]
     if publishes:
         lines.append("Merging publishes to production (`deploys` is true in .claude/flow.json).")
