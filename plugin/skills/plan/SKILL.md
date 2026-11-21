@@ -24,7 +24,7 @@ The last part of the owner's first sitting: the last time, before any code, that
 
 4. **The bar.** An engineer who has not seen this conversation could implement the change from this plan alone. Every line cites an R-ID or a concern.
 
-5. **Pre-read.** Run the `reviewer` subagent on the draft. Its brief: the change folder's name and the path of the plan draft — nothing else. It runs on its own fixed model; only when the owner has accepted the suggestion to run the checks on Fable, name it in the call (`model: fable`). Fold what it finds into the plan: a fix, or a point for the owner to rule. Its report stays in this conversation (plan mode writes no file); the folded result is what the owner reads.
+5. **Pre-read.** Run the `reviewer` subagent on the draft. Its brief is this and nothing else: `Pre-read the plan of the change in specs/<folder>/. The plan draft is at <path>. Start by reading REVIEW.md.` It runs on its own fixed model; only when the owner has accepted the suggestion to run the checks on Fable, name it in the call (`model: fable`). Fold what it finds into the plan: a fix, or a point for the owner to rule. Its report stays in this conversation (plan mode writes no file); the folded result is what the owner reads.
 
 6. **Go on or stop after the approval?** Before you hand the plan over, ask the owner once, with AskUserQuestion: after he approves the plan, do you (a) go on with the implementation in this session — the default, listed first — or (b) stop, so that he can clear the context (`/clear`) and say「继续」? Everything the implementation needs is on disk once the plan is approved. Ask this in every normal or high-risk change; it is the one stop the flow offers.
 

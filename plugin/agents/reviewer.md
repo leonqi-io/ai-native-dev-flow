@@ -16,6 +16,9 @@ The brief gives you the change folder's name (`specs/<folder>/`), and for the pr
 
 Start every report with the HEAD you read at: `git rev-parse --short HEAD`.
 
+## Your first step is a tool call
+The brief is one fixed sentence that names the change folder, and that is all you were given. Do not write a fuller brief yourself, do not guess what the session wants checked, and do not reply before you have run anything: begin with `git rev-parse --short HEAD` and `git status --short`. A turn of yours without a tool call ends your run with nothing checked. If you are ever made to report before you could check, the first line of the report is `not checked` and it says why — never a count of findings.
+
 ## Job 1 — the pre-read (before the owner sees the plan)
 Read the spec, the validation and the plan draft once, as the engineer who will implement from them without having seen the conversation. Report:
 1. A requirement the plan does not carry out, or a plan step no requirement asks for.

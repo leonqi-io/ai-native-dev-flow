@@ -41,8 +41,8 @@ The middle of the change. The owner is not here and reads none of the reports: t
 
 7. **The review loop**, on committed work, in this order. Each report is written, unchanged, to `specs/<folder>/reports/` and committed (`code-review-<n>.md`, `verify-<n>.md`, `review-<n>.md`, numbered by round):
    1. **`code-reviewer`** on the diff. Fix what it reports.
-   2. **`verifier`** — last before the reviewer, **in the foreground**, on the commit you are handing over (commit first; nothing uncommitted). Its brief is the change folder's name and nothing else. A change to a product file after it means running it again; a change to the records under `specs/` alone does not.
-   3. **`reviewer`** — its brief is the change folder's name and nothing else. Record its line:
+   2. **`verifier`** — last before the reviewer, **in the foreground**, on the commit you are handing over (commit first; nothing uncommitted). Its brief is this one sentence and nothing else — no description of the change, of its size or of what to check: `Check the change in specs/<folder>/. Start with the first step of your checklist.` (A bare folder name as the whole brief has made the subagent invent a fuller brief and return without checking.) A change to a product file after it means running it again; a change to the records under `specs/` alone does not.
+   3. **`reviewer`** — its brief is this one sentence and nothing else: `Review the change in specs/<folder>/. Start by reading REVIEW.md.` Record its line:
 
       ```bash
       python3 "${CLAUDE_PLUGIN_ROOT}/scripts/record.py" review --by reviewer --important <n> --nit <n> --report specs/<folder>/reports/review-<n>.md
@@ -55,6 +55,8 @@ The middle of the change. The owner is not here and reads none of the reports: t
    The review line records the commit reviewed (HEAD; commit first — the script refuses uncommitted product changes). A product change after it means another round: the close check refuses it.
 
    Under each report, add **Disposition**: for every finding you did not fix, where it goes — a Leftovers line in `validation.md` (with its pointer); for a Nit whose cost you judge negligible, a line under "Not recorded" in `validation.md` (`- review-2 N3: <one sentence>`); or the reason it is not done. "Not done" alone is not a disposition. A leftover becomes a roadmap line the owner has to decide one day, so "Not recorded" is where a Nit that will never matter belongs; the owner sees that group on the end screen.
+
+   A subagent that comes back having run nothing ("not checked", or no tool call) gave no result: do not record it and do not write it to `reports/`; start it again with the same sentence — after three such returns in a row, stop and tell the owner.
 
    Until the loop ends, the owner gets no report; at most one line ("the verifier is running").
 

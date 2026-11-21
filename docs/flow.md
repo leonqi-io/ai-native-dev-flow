@@ -72,6 +72,7 @@
 ### 评审由新上下文的 subagent 做
 
 - 正常档和高风险档：评审是 subagent `reviewer` 的事。它有新的上下文，任务说明只有改动文件夹的名字，自己读 REVIEW.md、改动文件夹和 diff；固定用 Opus（见「模型」）。「评审的不是实现的」这条独立性从此靠新上下文和只给文件夹名来保证，不再靠 owner 在 session 之间传话。
+- **「只有文件夹名」写成一句固定的话**（verifier：`Check the change in specs/<文件夹>/. Start with the first step of your checklist.`；reviewer 同形），里面除了文件夹名（预读再加 plan 草稿的路径）没有对改动的任何描述。verifier 和 reviewer 的定义写明第一步必须是工具调用、不自己补写任务说明。原因：只有一个词的任务说明让 verifier 连着两次先替调用方编了一段说明（「第 3、5 项可以跳过」），没跑任何命令就被结束（飞猫 `2026-11-21-sync-flow-templates`）。没查就交回的不算结果，不记、不落盘，重新起；连着三次就找 owner。
 - 新开 session 的评审（`review` skill）是 owner 想要时才用的选项，不是固定步骤。
 - 小改动：verifier 带着 REVIEW.md 的固定检查给出评审结论。兜底有三条：
   1. verifier 不靠任务说明干活：它自己读 `main` 上的 intent 和分支对 `main` 的 diff，任务说明只有文件夹名。
