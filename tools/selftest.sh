@@ -352,11 +352,18 @@ python3 "$S/roadmap_edit.py" delete --match "footer month" --reason dismissed >/
 expect "state: no open line" "$(python3 "$S/state.py")" "to do: no open line"
 
 echo "6b. project copies of the templates"
+expect "every template's mark matches its content" "$(python3 "$HERE/tools/template_marks.py" --check)" "every mark matches"
 STATE="$(python3 "$S/state.py")"
 expect "state: a copy without a template mark is reported" "$STATE" ".claude/flow.json (no mark; template "
 expect "state: a copy in step with its template is not reported" "$(printf '%s' "$STATE" | grep -c 'REVIEW.md (')" "0"
 sed -i.bak 's/flow-template: [0-9-]*/flow-template: 2020-01-01/' REVIEW.md && rm REVIEW.md.bak
-expect "state: a copy older than its template is reported" "$(python3 "$S/state.py")" "REVIEW.md (2020-01-01; template "
+expect "state: a copy older than its template is reported" "$(python3 "$S/state.py")" "REVIEW.md (2020-01-01 "
+git checkout -q REVIEW.md
+sed -i.bak 's/\(flow-template: [0-9-]*\) [0-9a-f]*/\1 0000000/' REVIEW.md && rm REVIEW.md.bak
+expect "state: the same date with another hash is reported" "$(python3 "$S/state.py")" " 0000000; template "
+git checkout -q REVIEW.md
+sed -i.bak 's/flow-template: [0-9-]*/flow-template: 2026-02-30/' REVIEW.md && rm REVIEW.md.bak
+expect "state: a mark that is not a real date counts as no mark" "$(python3 "$S/state.py")" "REVIEW.md (no mark; template "
 git checkout -q REVIEW.md
 
 echo "7. a project with an origin: main is pushed and kept in step"

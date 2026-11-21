@@ -31,7 +31,7 @@ You check the commit that is to be handed over: `git rev-parse --short HEAD`, wi
 4. **Against `plan.md`** (normal, high-risk): each file of the diff is in "Files that change"; each step of "Order of work" is done; each item of "Proof" holds. For every mismatch say how to confirm it.
 5. **UI change:** take a screenshot of each state the spec names and compare it with `mock.html`. Name each visible difference.
 6. **Small change only — the review result.** Run the fixed checks of `REVIEW.md`:
-   - **Did this change alter behaviour a user would notice, or touch more than one place?** Judge it from the diff alone. If yes: it should have been a normal change — Important.
+   - **Did this change alter behaviour a user would notice in more than one place?** Judge it from the diff alone. If yes: it should have been a normal change — Important. A change that alters no behaviour is small however many files it touches; a fix that alters behaviour in one place is small too.
    - For each `test-release:` entry of the Approval log: was the test weakened?
    - A test file the change adds that sets how tests run (`conftest.py`, the runner's configuration, a shared fixture): does it skip, filter or alter an existing test? If yes — Important.
    - Does the change make a line of `CLAUDE.md` outdated?

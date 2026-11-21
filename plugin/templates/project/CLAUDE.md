@@ -1,7 +1,7 @@
 # <Project> — instructions for Claude
 
 <!-- Keep this under a page. It holds what a session needs every time; everything else is a pointer. -->
-<!-- flow-template: 2026-11-21 — the date the "Development flow" section was last brought in step with the plugin's template; the state report says when the template is newer. -->
+<!-- flow-template: 2026-11-21 49b91e3 — the mark of the plugin template the "Development flow" section was last brought in step with (copy it from the template; never edit it by hand). The state report says when the template has moved on. -->
 
 ## Commands
 <!-- Each with what healthy output looks like. -->

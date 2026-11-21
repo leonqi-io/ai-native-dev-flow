@@ -506,14 +506,34 @@ def mock_review_problems(root, folder):
 # Project files that start as a copy of a plugin template and carry the
 # flow's own rules: project path -> template file under templates/project/.
 MARKED_TEMPLATES = {"CLAUDE.md": "CLAUDE.md", "REVIEW.md": "REVIEW.md", CONFIG_PATH: "flow.json"}
-# Matches the Markdown form (<!-- flow-template: 2026-11-21 -->) and the JSON form ("//flow-template": "2026-11-21").
-TEMPLATE_MARK = re.compile(r'flow-template"?:\s*"?(\d{4}-\d{2}-\d{2})')
+# The mark is a date and a short hash of the template's content. Matches the Markdown form
+# (<!-- flow-template: 2026-11-21 3fa9c1e -->) and the JSON form ("//flow-template": "2026-11-21 3fa9c1e").
+# A copy made before the hash was added carries the date alone.
+TEMPLATE_HASH_LENGTH = 7  # as short as Git's short hash: enough to tell the versions of three small files apart
+TEMPLATE_MARK = re.compile(
+    r'(?P<label>flow-template"?:\s*"?)(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})(?: (?P<hash>[0-9a-f]{%d})(?![0-9a-f]))?' % TEMPLATE_HASH_LENGTH
+)
 
 
 def template_mark(text):
-    """The date a template (or a project's copy of it) was last brought in step, or None."""
+    """The mark of a template or of a project's copy — "<date> <hash>", or the date alone — or None.
+
+    A date that does not exist (2026-02-30) counts as no mark.
+    """
     found = TEMPLATE_MARK.search(text or "")
-    return found.group(1) if found else None
+    if not found:
+        return None
+    try:
+        datetime.strptime(found.group("date"), "%Y-%m-%d")
+    except ValueError:
+        return None
+    return found.group("date") + (" " + found.group("hash") if found.group("hash") else "")
+
+
+def template_content_hash(text):
+    """Short hash of a template's content, its own mark left out (the mark cannot contain its own hash)."""
+    without_mark = TEMPLATE_MARK.sub(lambda found: found.group("label"), text, count=1)
+    return hashlib.sha256(without_mark.encode("utf-8")).hexdigest()[:TEMPLATE_HASH_LENGTH]
 
 
 def templates_dir():
@@ -521,7 +541,7 @@ def templates_dir():
 
 
 def stale_template_copies(root):
-    """[(project path, its mark or None, the template's mark)] for every copy older than its template."""
+    """[(project path, its mark or None, the template's mark)] for every copy whose mark is not its template's."""
     stale = []
     for project_path, template_name in sorted(MARKED_TEMPLATES.items()):
         try:
@@ -533,7 +553,8 @@ def stale_template_copies(root):
         if current is None or copy is None:
             continue
         mark = template_mark(copy)
-        if mark is None or mark < current:
+        # Any difference counts, not only an older date: the hash tells two versions of one day apart.
+        if mark != current:
             stale.append((project_path, mark, current))
     return stale
 

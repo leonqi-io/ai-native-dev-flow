@@ -1,5 +1,5 @@
 {
-  "//flow-template": "2026-11-21",
+  "//flow-template": "2026-11-21 38ec2ac",
   "//": "deploys: true only while a merge publishes now — it turns true in the change that connects the pipeline.",
   "test_scope": ["tests/**"],
   "deploys": false,

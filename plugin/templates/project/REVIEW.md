@@ -1,6 +1,6 @@
 # Review instructions
 
-<!-- flow-template: 2026-11-21 — the date this copy was last brought in step with the plugin's template; the state report says when the template is newer. -->
+<!-- flow-template: 2026-11-21 652ebf7 — the mark of the plugin template this copy was last brought in step with (copy it from the template; never edit it by hand). The state report says when the template has moved on. -->
 
 Read by the reviewer subagent, which the implementing session runs with the change folder's name as its only brief — and by a fresh-session review when the owner asks for one. The reviewer reports; it does not approve, block or change code.
 
@@ -21,8 +21,8 @@ Before the owner sees the plan, the reviewer reads spec, validation and the plan
 - **Validation steps as written:** run as written, does each step of validation §0, §2 and §3 give its expected result? If not — Important, even when the product is right and the record is wrong. Aligning the record (an exception added to a step) is a fix the owner confirms.
 - **Released test change:** for each `test-release:` line of the Approval log, did the change weaken the §1 row it belongs to? If yes — Important.
 - **New test-setup file:** a test file the change adds that sets how tests run (a `conftest.py`, the test runner's configuration, a shared fixture or setup file) — does it skip, filter, mark as expected to fail or otherwise alter a test that existed before the lock? If yes — Important. A new test file needs no release line, so this check is the only one on it.
-- **Small change:** did it alter behaviour a user would notice, or touch more than one place? If yes it should have been a normal change — Important.
-- **Small changes merged since the last fresh-session review** (fresh-session review only; the state report lists them): read each one's intent and diff, judge "did behaviour change", and add to its Approval log the line `<date time> · small-change read (fresh session) · behaviour changed: yes|no`. A "yes" is reported as Important in this review.
+- **Small change:** did it alter behaviour a user would notice in more than one place? If yes it should have been a normal change — Important. A change that alters no behaviour is small however many files it touches; so is a fix that alters behaviour in one place.
+- **Small changes merged since the last fresh-session review** (fresh-session review only; the state report lists them): read each one's intent and diff, judge "did behaviour change", and add to its Approval log the line `<date time> · small-change read (fresh session) · behaviour changed: yes|no`. A small change that altered behaviour in more than one place is reported as Important in this review.
 - **`CLAUDE.md`:** does this change make any line of it outdated? A mistake this review flags for the second time is written into `CLAUDE.md` now.
 
 ## Severity

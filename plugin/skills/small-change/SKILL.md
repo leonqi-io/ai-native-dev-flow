@@ -34,7 +34,7 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
    - record the verifier's own count: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/record.py" review --by verifier --important <n> --nit <n> --report specs/<folder>/reports/verify-<n>.md`. The line records the commit checked; a product change after it means running the verifier again (the merge refuses otherwise). The verifier runs on its own fixed model (Opus), not on this session's;
    - fill "Leftovers" (each one points to a new intent or to the roadmap; `- None.` otherwise) and commit.
 
-   If the verifier answers that behaviour changed: stop. This is a normal change — say so and start over with the `intent` skill.
+   If the verifier reports that behaviour changed in more than one place: stop. This is a normal change — say so and start over with the `intent` skill.
 
 5. **Second click.** First `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/merge.py" --check`; when nothing refuses, run alone:
 

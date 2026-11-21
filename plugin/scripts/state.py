@@ -215,7 +215,7 @@ def render(info):
         lines.append("small changes not yet read by a fresh session: %d (%s)" % (len(info["unread_small"]), ", ".join(info["unread_small"])))
     if info["stale_templates"]:
         copies = ", ".join("%s (%s; template %s)" % (path, mark or "no mark", current) for path, mark, current in info["stale_templates"])
-        lines.append("templates: behind the plugin's — %s. Compare with %s; the owner decides whether to bring them in step" % (copies, flowlib.templates_dir()))
+        lines.append("templates: not in step with the plugin's — %s. Compare with %s; the owner decides whether to bring them in step" % (copies, flowlib.templates_dir()))
     return "\n".join(lines)
 
 

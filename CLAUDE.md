@@ -7,10 +7,11 @@ This repository holds our development flow v3: the rules (`docs/`, in Chinese) a
 - Plugin format check: `claude plugin validate plugin`
 - One eval case: `claude plugin eval plugin --case pick-<name> --ablation none` (run by the owner, in his own terminal, signed in with the plan)
 - Regenerate the phrasing table: `python3 tools/skill_list.py`
+- Rewrite the template marks: `python3 tools/template_marks.py` → `marked …` for each changed template, or `template marks: every mark matches its content`
 
 ## Verifying your work
 - A change to `plugin/scripts/` or `plugin/hooks/` is done when `bash tools/selftest.sh` is green and its output is pasted. Add a line to the self-test for every new refusal, prompt or pass.
-- A change to `plugin/templates/project/CLAUDE.md`, `REVIEW.md` or `flow.json`: set its `flow-template` mark to today's date in the same change — the state report compares a project's copy with it, and no script checks that the mark was moved.
+- A change to `plugin/templates/project/CLAUDE.md`, `REVIEW.md` or `flow.json`: run `python3 tools/template_marks.py` in the same change — it writes the `flow-template` mark (date and content hash) the state report compares a project's copy with; the self-test fails while a mark does not match its template. Never type a mark by hand.
 - A change to a skill's `description` or `when_to_use`: say that its eval case has to be re-run; do not edit the generated block in `docs/skills.md` by hand.
 
 ## Conventions

@@ -70,7 +70,7 @@ bash tools/selftest.sh
 - 存在检查只看得到 Edit 和 Write。用 shell 写文件能绕过它，但绕过之后：测试文件的改动由测试范围差异检查查到，plan 之外的文件由 plan 对照检查查到，「To do」段被分支自己动过由收尾检查的「to do」一项查到，都在合并之前。核心不带「禁止用 shell 改写文件」的钩子（2026-11-19 裁定）：plan mode 本身不让写文件，上面两项检查对 shell 写的文件实测管用。
 - 评审行、验收行、放行行由实现的 session 调 `record.py` 写，它可以记一次没有发生的评审或放行；收尾检查信这些行。这个界限 owner 已接受（2026-11-19）。记了之后的改动查得到（2026-11-20）：评审行记被评审的提交，之后产品文件再变就拒绝；放行行记文件内容的哈希，之后再变就拒绝。
 - owner 打回计划时 `ExitPlanMode` 的 PostToolUse 不触发，plan mode 里起得了插件自己的 subagent：都实测过（2026-11-20）。带着一段话批准（在第三项的输入框打字、再按 shift+tab）时钩子触不触发、这段话交不交得到 session，未核实；流程不靠这条路。
-- 模板的版本标记靠改模板的人记得改日期，没有脚本查；写在本仓 `CLAUDE.md` 的「Verifying your work」里。
+- 模板标记只说明「副本抄的是哪一版模板的标记」，不查副本的内容真的跟上了：项目的副本本来就带着自己的内容，没法逐字比。
 - `ask`：官方文档写明 auto 模式下钩子的 `ask` 一定弹提示；其他权限模式下弹不弹、能显示多少字，未核实，试点里测。退路是批准句。
 - 批准句钩子分不出一条 prompt 是不是 owner 打的：定时唤醒、后台 subagent 的回报、别的 session 发来的消息也会触发它，输入里没有来源字段。现在靠三条：整句匹配、在 subagent 里不动作、拦掉内容是批准句的定时任务和跨 session 消息。这三种 prompt 的文本实际长什么样，未核实，试点里测。
 - 批准句钩子的结果给 owner 显示用的是 `systemMessage` 字段，在 `UserPromptSubmit` 上显不显示，未核实。不显示的话，结果只由 agent 转述。
@@ -81,7 +81,7 @@ bash tools/selftest.sh
 
 | 脚本 | 谁运行 | 做什么 |
 |---|---|---|
-| `state.py` | 钩子、skill、人 | 从仓库推出当前阶段和小步（批准记录、批准标记、红测试、Approval log 里最新的评审行和验收行），报「项目未立项」、档位、下一步、owner 该说的那句话、分支是否已经合并、本地 `main` 是否落后、待办和未读小改动；项目的 `CLAUDE.md`、`REVIEW.md`、`.claude/flow.json` 的模板标记比插件模板旧（或没有标记）时报一行 |
+| `state.py` | 钩子、skill、人 | 从仓库推出当前阶段和小步（批准记录、批准标记、红测试、Approval log 里最新的评审行和验收行），报「项目未立项」、档位、下一步、owner 该说的那句话、分支是否已经合并、本地 `main` 是否落后、待办和未读小改动；项目的 `CLAUDE.md`、`REVIEW.md`、`.claude/flow.json` 的模板标记和插件模板的不一样（或没有标记）时报一行 |
 | `accept.py setup\|intent\|spec\|plan [--check]` | owner 说批准句（钩子运行），或在自己的终端；小改动的 `intent` 由 agent 调用并弹确认；`--check` 谁都可以跑 | `setup`、`intent`（只限小改动）、`spec`（intent、spec、validation 三份）：把批准文件提交进 `main`，再把 `main` 合回工作分支。先查：文件已在工作分支上提交、形状对、（`spec`）R-ID 全覆盖、文件夹里有 `mock.html` 时 spec 的「Mock」一节写了确认人。`plan`：退路，plan.md 已提交且没有未提交的改动时写批准标记，提交在工作分支上。`setup` 在 `setup` 分支上不同：整条分支进 `main`，列出每个进去的文件，然后切到 `main`、删 `setup`。`--check` 只查、只列，不改 |
 | `merge.py [--check]` | owner 说「确认合并」（钩子运行），或在自己的终端；小改动由 agent 调用并弹确认 | 先跑收尾检查；小改动碰高风险路径就拒绝。本地合并（小改动、不开 PR 的项目）：把 `main` 前移到分支头并推到 origin。走 PR（开 PR 的项目的正常档和高风险档）：核对 PR 的头，`gh pr merge --merge`，本地 `main` 快进到 `origin/main`。之后切到 `main`，删本地和远端分支。分支已经在 `main` 里时只做清理 |
 | `sync_main.py` | agent、人 | 本地 `main` 和 `origin/main` 对齐：origin 领先就快进本地，本地领先就补推，分叉就拒绝。不批准任何东西 |
@@ -114,7 +114,7 @@ bash tools/selftest.sh
 - **待办行**：`- <日期> · <谁提的> · <一句话>`。
 - **不记的发现**：validation.md 的「Not recorded」一节，一条一行（`- review-2 N3: <一句话>`），没有就写 `- None.`；脚本不读。
 - **mock 的确认**：spec.md「Mock」一节里一行 `- Confirmed by: <谁>, <日期>`；文件夹里有 `mock.html` 而这一行空着，「接受 spec」和收尾检查拒绝。
-- **模板标记**：`flow-template: <日期>`——`CLAUDE.md`、`REVIEW.md` 里是一行 HTML 注释，`flow.json` 里是 `"//flow-template"` 键。
+- **模板标记**：`flow-template: <日期> <模板内容的 7 位短哈希>`——`CLAUDE.md`、`REVIEW.md` 里是一行 HTML 注释，`flow.json` 里是 `"//flow-template"` 键。算哈希时不算标记自己。模板的标记由 `tools/template_marks.py` 写；项目副本的标记是从模板原样抄来的，和模板的不一样就报。只有日期的旧标记、日期不存在的标记，都算不一致。
 
 ## 往 `main` 提交是怎么做的
 
