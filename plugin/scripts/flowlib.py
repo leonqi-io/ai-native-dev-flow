@@ -128,6 +128,12 @@ def read_head(root, path):
     return result.stdout if result.returncode == 0 else None
 
 
+def read_at(root, commit, path):
+    """The file as it is in the tree of `commit`, or None."""
+    result = git(["show", "%s:%s" % (commit, path)], cwd=root)
+    return result.stdout if result.returncode == 0 else None
+
+
 def read_worktree(root, path):
     full = os.path.join(root, path)
     if not os.path.isfile(full):
@@ -470,6 +476,68 @@ def bullets(text):
     return [line.strip() for line in (text or "").splitlines() if line.strip().startswith("- ")]
 
 
+# ------------------------------------------------------------- mock review
+
+MOCK_FILE = "mock.html"
+MOCK_CONFIRMED = re.compile(r"^- Confirmed by:[ \t]*(\S.*)$", re.MULTILINE)
+
+
+def mock_review_problems(root, folder):
+    """A change folder that holds a mock needs the spec to say who looked at the mock and confirmed it.
+
+    The mock is the design of a UI change; accepting the spec accepts it. The
+    line is the record that a person opened the mock itself, not only read
+    the text around it.
+    """
+    if read_worktree(root, "%s/%s" % (folder, MOCK_FILE)) is None:
+        return []
+    body = section(read_worktree(root, folder + "/spec.md"), "Mock")
+    if body is None:
+        return ["%s/%s exists but spec.md has no '## Mock' section (the mock review)" % (folder, MOCK_FILE)]
+    confirmed = MOCK_CONFIRMED.search(body)
+    if not confirmed or confirmed.group(1).lstrip().startswith("<"):
+        return ["the mock is not confirmed: spec.md's '## Mock' section needs '- Confirmed by: <who>, <date>' "
+                "— written once that person has looked at %s itself" % MOCK_FILE]
+    return []
+
+
+# ------------------------------------------------------------ template marks
+
+# Project files that start as a copy of a plugin template and carry the
+# flow's own rules: project path -> template file under templates/project/.
+MARKED_TEMPLATES = {"CLAUDE.md": "CLAUDE.md", "REVIEW.md": "REVIEW.md", CONFIG_PATH: "flow.json"}
+# Matches the Markdown form (<!-- flow-template: 2026-11-21 -->) and the JSON form ("//flow-template": "2026-11-21").
+TEMPLATE_MARK = re.compile(r'flow-template"?:\s*"?(\d{4}-\d{2}-\d{2})')
+
+
+def template_mark(text):
+    """The date a template (or a project's copy of it) was last brought in step, or None."""
+    found = TEMPLATE_MARK.search(text or "")
+    return found.group(1) if found else None
+
+
+def templates_dir():
+    return os.path.join(os.path.dirname(scripts_dir()), "templates", "project")
+
+
+def stale_template_copies(root):
+    """[(project path, its mark or None, the template's mark)] for every copy older than its template."""
+    stale = []
+    for project_path, template_name in sorted(MARKED_TEMPLATES.items()):
+        try:
+            with open(os.path.join(templates_dir(), template_name), encoding="utf-8") as handle:
+                current = template_mark(handle.read())
+        except OSError:
+            current = None
+        copy = read_worktree(root, project_path)
+        if current is None or copy is None:
+            continue
+        mark = template_mark(copy)
+        if mark is None or mark < current:
+            stale.append((project_path, mark, current))
+    return stale
+
+
 # ------------------------------------------------------------------- roadmap
 
 
@@ -482,6 +550,24 @@ def roadmap_on_main(root):
 
 def todo_lines(roadmap_text):
     return [line for line in bullets(section(roadmap_text, "To do")) if TODO_LINE.match(line)]
+
+
+def todo_difference(before_text, after_text):
+    """(removed, added) To do lines between two versions of the roadmap; a changed line is one of each."""
+    before, after = todo_lines(before_text), todo_lines(after_text)
+    return [line for line in before if line not in after], [line for line in after if line not in before]
+
+
+def todo_route():
+    """The two ways a To do line may leave or enter, as a sentence for a refusal."""
+    return (
+        "a To do line leaves only through roadmap_edit.py, on `main`, with the owner's click "
+        "(something already fixed on this branch that is not a product file: `%s`), and enters only through `%s`"
+        % (
+            script_line("roadmap_edit", "delete", "--match", '"<text>"', "--reason", "fixed-directly", "--commit", "<hash>"),
+            script_line("todo_add", "--who", "<name>", '"<sentence>"'),
+        )
+    )
 
 
 def edit_section(text, heading_start, edit, file_label=ROADMAP):

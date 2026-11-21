@@ -6,7 +6,8 @@ line, although the agent cannot otherwise move `main`. The script can only
 append lines to that one section. Several findings (a change's leftovers at
 its close) go in one call: one commit, one push.
 
-Usage: todo_add.py --who <name> "<one sentence>" ["<one sentence>" ...]
+Usage: todo_add.py --who <name> "<one sentence>" ["<one sentence>" ...] [--who <other name> "<one sentence>" ...]
+Each --who names who raised the sentences after it, up to the next --who.
 Line written:  - <date> · <who> · <sentence>
 A leftover of a change adds its tag at the end of the sentence: "... (<folder name> L2)"
 """
@@ -17,13 +18,27 @@ import flowlib
 
 
 def parse(arguments):
-    """(who, [sentences]) or None when the arguments are not of the usage's form."""
-    if len(arguments) < 3 or arguments[0] != "--who" or not arguments[1].strip():
+    """[(who, sentence)] or None when the arguments are not of the usage's form."""
+    if not arguments or arguments[0] != "--who":
         return None
-    sentences = [" ".join(sentence.split()) for sentence in arguments[2:]]
-    if not all(sentences):
+    findings, who, expects_name = [], None, False
+    for argument in arguments:
+        if argument == "--who":
+            if expects_name:
+                return None
+            expects_name = True
+        elif expects_name:
+            who, expects_name = argument.strip(), False
+            if not who:
+                return None
+        else:
+            sentence = " ".join(argument.split())
+            if not sentence:
+                return None
+            findings.append((who, sentence))
+    if expects_name or not findings:
         return None
-    return arguments[1].strip(), sentences
+    return findings
 
 
 def commit_message(sentences):
@@ -36,12 +51,12 @@ def main():
     if not parsed:
         print(__doc__.strip())
         return 2
-    who, sentences = parsed
+    sentences = [sentence for _, sentence in parsed]
     root = flowlib.repo_root()
     if not root or not flowlib.is_setup(root):
         print("REFUSED: the project is not set up (no %s on `main`)" % flowlib.ROADMAP)
         return 1
-    lines = ["- %s · %s · %s" % (flowlib.today(), who, sentence) for sentence in sentences]
+    lines = ["- %s · %s · %s" % (flowlib.today(), who, sentence) for who, sentence in parsed]
 
     def append(body):
         while body and not body[-1].strip():

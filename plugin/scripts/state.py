@@ -36,6 +36,7 @@ def gather(root):
     info["todo_count"] = len(todo)
     info["todo_oldest"] = min((line[2:12] for line in todo), default=None)
     info["unread_small"] = unread_small_changes(root)
+    info["stale_templates"] = flowlib.stale_template_copies(root)
     folder = flowlib.change_folder(root)
     if folder and flowlib.folder_exists(root, folder):
         info["folder"] = folder
@@ -212,6 +213,9 @@ def render(info):
         lines.append("to do: no open line")
     if info["unread_small"]:
         lines.append("small changes not yet read by a fresh session: %d (%s)" % (len(info["unread_small"]), ", ".join(info["unread_small"])))
+    if info["stale_templates"]:
+        copies = ", ".join("%s (%s; template %s)" % (path, mark or "no mark", current) for path, mark, current in info["stale_templates"])
+        lines.append("templates: behind the plugin's — %s. Compare with %s; the owner decides whether to bring them in step" % (copies, flowlib.templates_dir()))
     return "\n".join(lines)
 
 

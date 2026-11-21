@@ -1,6 +1,6 @@
 # Spec: <title>
 
-Intent: `specs/<folder>/intent.md` (accepted on `main`, commit <sha>)
+Intent: `specs/<folder>/intent.md`
 Policies and skills read: <name at version or commit — or "none">
 
 ## Requirements
@@ -10,7 +10,7 @@ Every R-ID has to be cited in validation.md §0, §1 or §2 — a script refuses
 - **R2** <behaviour>
 
 ## Design
-<How the requirements are met: parts, data, flow. For a UI change the mock is `mock.html` in this folder and is part of the spec.>
+<How the requirements are met: parts, data, flow. For a UI change the mock is `mock.html` in this folder; it is the design, and the Mock section below records its review.>
 
 ## Constraint trace
 | Constraint (from the intent) | Where the spec meets it |
@@ -21,6 +21,19 @@ Every R-ID has to be cited in validation.md §0, §1 or §2 — a script refuses
 | Open question (from the intent) | Answer, or the concern that carries it |
 |---|---|
 | <question> | <answer, or C1> |
+
+## Mock
+<!-- UI change only — delete this section when the folder holds no mock.html.
+The mock review: the mock is measured against what it replaces, every difference is either meant (it cites a
+requirement or a ruling) or the mock is corrected, and a person looks at the mock itself before the spec is accepted.
+"Confirmed by" stays empty until that person has opened mock.html; the spec is not accepted without it. -->
+- Measured against: <the earlier mockup or the present page it replaces, as a path or URL — or "nothing: a new page">
+- Looked at in: <browser, and the widths the requirements name>
+- Confirmed by:
+
+| Block | Before | In the mock | Meant by |
+|---|---|---|---|
+| <header / footer / a section> | <what it was> | <what it is now> | <R-ID or ruling — never empty> |
 
 ## Fact values
 <!-- Every value the product will show or store that comes from outside the code — a name, a price, an address,

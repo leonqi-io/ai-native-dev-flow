@@ -25,9 +25,9 @@ become the plan approval. The session is told to go back to plan mode.
 Fired inside a subagent (the input carries `agent_id`), the hook does
 nothing: only the main session's plan is the owner's to accept.
 
-Not yet seen in use: whether the hook fires when the owner sends the plan
-back. The documentation only says PostToolUse runs after the tool succeeds;
-the first real plan approval checks that no mark is written on a rejection.
+Seen in use (2026-11-20): the hook does not fire when the owner sends the
+plan back. Not yet seen: an approval that carries feedback (text typed at
+the third option, then shift+tab).
 
 Where the repository has no .claude/flow.json the hook does nothing.
 """
@@ -38,6 +38,15 @@ import sys
 
 import check_shape
 import flowlib
+
+
+# What the session does next is the owner's choice, made at the question the plan skill asks before the
+# hand-over (ruled 2026-11-21): the default is to go on; a stop lets him clear the context first.
+AFTER_APPROVAL = (
+    "The plan is approved. Do what the owner chose at the question before the hand-over. "
+    "He chose to stop: reply with one line — the plan is committed, with its hash, and after /clear he says「继续」 — and stop there. "
+    "He chose to go on, or was not asked: carry on in this session with the implementation (skill: implement)."
+)
 
 
 def accepted_text(data):
@@ -88,7 +97,7 @@ def main():
         return
     lines = flowlib.record_plan_approval(root, folder, "accepted in plan mode", text)
     say("flow · " + "\n".join(lines),
-        "\n".join(lines) + "\nThe plan is approved. Carry on in this session with the implementation (skill: implement).")
+        "\n".join(lines) + "\n" + AFTER_APPROVAL)
 
 
 if __name__ == "__main__":

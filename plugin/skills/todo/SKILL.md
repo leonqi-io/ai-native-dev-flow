@@ -18,6 +18,8 @@ One line, in the words it was given. No analysis, no intent yet.
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/todo_add.py" --who "<who raised it>" "<one sentence>"
 ```
 
+Several findings go in one call; a `--who` names who raised the sentences after it, up to the next `--who`.
+
 The script commits the line straight to `main` (it can only append to that section), so the finding is recorded at once. A leftover of a change ends its sentence with the tag `(<folder name> L<n>)`.
 
 ## Go through the open lines
@@ -29,12 +31,13 @@ List them (the state report gives the count and the oldest date; the lines are i
 | **Fix now** | Write the intent (`intent` skill, or `small-change` when it qualifies); its "Source" names the line. Then `roadmap_edit.py delete --match "<text>" --reason fix-now`. |
 | **Schedule** | `roadmap_edit.py move --match "<text>"` — the sentence joins "Planned stages". |
 | **Dismiss** | `roadmap_edit.py delete --match "<text>" --reason dismissed` — Git history keeps it. |
+| **Already fixed** — not a product file, corrected directly on a working branch | `roadmap_edit.py delete --match "<text>" --reason fixed-directly --commit <hash>` — after the correction is committed. |
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap_edit.py" <delete|move> --match "<text>" [--reason fix-now|dismissed]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap_edit.py" <delete|move> --match "<text>" [--reason fix-now|dismissed|fixed-directly --commit <hash>]
 ```
 
-Run it alone; the owner confirms each with one click. A kind of request that keeps coming back and keeps being dismissed belongs in the mission's "What this does not do" — propose the line; the mission changes by the owner's commit.
+Run it alone; the owner confirms each with one click. This script is the only way a line leaves: do not edit the To do section in `specs/roadmap.md` yourself, on any branch — the hook refuses the edit and the close check refuses the branch. A kind of request that keeps coming back and keeps being dismissed belongs in the mission's "What this does not do" — propose the line; the mission changes by the owner's commit.
 
 ## Known limits
 "Known limits" is a different section: defects knowingly left as they are. A line enters it only when a change is closed with such a leftover, and leaves when the defect is fixed.

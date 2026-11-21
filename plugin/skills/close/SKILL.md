@@ -17,8 +17,10 @@ when_to_use: 「验收过了，收尾准备合并」「收尾」「准备合并�
    Add all the to-do lines in **one** call — one commit on `main`, one push:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/todo_add.py" --who "<who raised it>" "<one sentence> (<folder name> L2)" "<one sentence> (<folder name> L4)"
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/todo_add.py" --who "review loop" "<one sentence> (<folder name> L2)" "<one sentence> (<folder name> L4)" --who "<owner>" "<one sentence> (<folder name> L5)"
    ```
+
+   Each `--who` names who raised the sentences after it.
 
    Then bring `main` into this branch before you touch the roadmap here: `git merge main`.
 
@@ -31,6 +33,8 @@ when_to_use: 「验收过了，收尾准备合并」「收尾」「准备合并�
      python3 "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap_edit.py" delete --match "<text>" --reason fix-now
      ```
 
+     A line whose object is not a product file and that a commit of this branch already fixed (a correction to `CLAUDE.md`, a note): `--reason fixed-directly --commit <hash>`. Never edit the To do section in the file yourself — the hook and the close check refuse it.
+
 3. **`CLAUDE.md`.** A mistake corrected twice during this change is written under "Things Claude gets wrong here"; a line the change made outdated is fixed — the reviewer's reports say which.
 
 4. **Commit on the working branch, then run the close check** and fix what it refuses:
@@ -39,7 +43,7 @@ when_to_use: 「验收过了，收尾准备合并」「收尾」「准备合并�
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/close_check.py"
    ```
 
-   It checks: the shape of every file, R-ID coverage, no change to an existing test file since the red commit that its latest release line does not cover, no changed product file missing from the plan, every leftover's pointer, the reviewer's latest line with no Important open, its report on disk and no product change after the commit it records, and the latest validation line (every judgment answered, none failed, each one not judged named in Leftovers).
+   It checks: the shape of every file (and that a mock is confirmed), R-ID coverage, no change to an existing test file since the red commit that its latest release line does not cover, no changed product file missing from the plan, every leftover's pointer, no To do line of the roadmap changed by this branch itself, the reviewer's latest line with no Important open, its report on disk and no product change after the commit it records, and the latest validation line (every judgment answered, none failed, each one not judged named in Leftovers).
 
    **When the check refuses because of its own fault** (it misreads a file that is right): stop and tell the owner which check, why you think the check is wrong, and how you would work around it. Touch an approved file only after he agrees, and record his ruling with `record.py ruling`.
 

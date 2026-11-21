@@ -7,6 +7,10 @@ whether the earlier approval is recorded, never at its content:
   plan.md                   needs spec.md and validation.md on `main`
   product files             need the plan approval mark (small change: intent.md on `main`)
   plan-approved.txt         never written by a tool: only the plan approval writes it
+  specs/roadmap.md          its "To do" lines are not removed, rewritten or added here
+                            (ruled 2026-11-20/21): they move on `main`, through
+                            roadmap_edit.py and todo_add.py. Not held while a merge
+                            is being resolved — the close check reads the result.
 Product file = anything outside specs/, CLAUDE.md and the project's
 `non_product_paths`.
 
@@ -71,6 +75,34 @@ def check_product_file(root, path):
         decide("deny", "The plan is not approved yet (it comes before code and tests): %s." % PLAN_ROUTE)
 
 
+def text_after_call(tool_input, current):
+    """The file's text once the Edit / Write / MultiEdit call has run, or None when it cannot be told."""
+    if isinstance(tool_input.get("content"), str):
+        return tool_input["content"]
+    edits = tool_input.get("edits") or [tool_input]
+    result = current
+    for edit in edits:
+        old, new = edit.get("old_string"), edit.get("new_string")
+        if not isinstance(old, str) or not isinstance(new, str) or old not in result:
+            return None
+        result = result.replace(old, new) if edit.get("replace_all") else result.replace(old, new, 1)
+    return result
+
+
+def check_roadmap(root, tool_input):
+    current = flowlib.read_worktree(root, flowlib.ROADMAP)
+    merging = flowlib.git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], cwd=root).returncode == 0
+    if current is None or merging:
+        return
+    after = text_after_call(tool_input, current)
+    if after is None:
+        return
+    removed, added = flowlib.todo_difference(current, after)
+    if removed or added:
+        what = "; ".join(part for part in ("removes or rewrites: " + " | ".join(removed) if removed else "", "adds: " + " | ".join(added) if added else "") if part)
+        decide("deny", "This edit changes the roadmap's To do section on a branch (%s). Leave the section as it is: %s." % (what, flowlib.todo_route()))
+
+
 def main():
     data = json.load(sys.stdin)
     file_path = (data.get("tool_input") or {}).get("file_path") or (data.get("tool_input") or {}).get("notebook_path")
@@ -88,6 +120,8 @@ def main():
     config = flowlib.load_config(root)
     if config is None or not flowlib.is_setup(root):
         return
+    if path == flowlib.ROADMAP:
+        check_roadmap(root, data.get("tool_input") or {})
     if MARK_FILE.match(path):
         decide("deny", "%s is the plan approval mark: only the plan approval writes it — %s." % (path, PLAN_ROUTE))
     chain = CHAIN_FILE.match(path)

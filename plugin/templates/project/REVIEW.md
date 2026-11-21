@@ -1,5 +1,7 @@
 # Review instructions
 
+<!-- flow-template: 2026-11-21 — the date this copy was last brought in step with the plugin's template; the state report says when the template is newer. -->
+
 Read by the reviewer subagent, which the implementing session runs with the change folder's name as its only brief — and by a fresh-session review when the owner asks for one. The reviewer reports; it does not approve, block or change code.
 
 ## What to read
@@ -35,5 +37,5 @@ Before the owner sees the plan, the reviewer reads spec, validation and the plan
 
 ## Output
 1. The report: findings grouped by pass, each with an ID and tagged Important or Nit, with file and line; the validation steps to look at again after the fix; the count `Important: <n> · Nit: <n>`.
-2. The implementing session writes the report to `specs/<folder>/reports/review-<n>.md`, adds under it what became of each finding it did not fix (a Leftovers line, or the reason it is not done), and records the line with `record.py review`. The line records the commit reviewed; a product change after it means another round before the close check passes.
+2. The implementing session writes the report to `specs/<folder>/reports/review-<n>.md`, adds under it what became of each finding it did not fix (a Leftovers line, a line under Not recorded for a negligible Nit, or the reason it is not done), and records the line with `record.py review`. The line records the commit reviewed; a product change after it means another round before the close check passes.
 3. Where the project uses pull requests: the close posts the reports as a PR comment.

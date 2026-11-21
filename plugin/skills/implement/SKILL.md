@@ -10,7 +10,7 @@ The middle of the change. The owner is not here and reads none of the reports: t
 
 ## Steps
 
-1. **State.** Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state.py"`. The plan has to be approved ("plan approved: yes"); the hook refuses code and tests otherwise.
+1. **State.** Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state.py"`. The plan has to be approved ("plan approved: yes"); the hook refuses code and tests otherwise. When this session starts here (the owner stopped after the plan approval and cleared the context), read `plan.md` first: its "Spec changed after acceptance" section says what to bring into `spec.md` and `validation.md` before the red tests.
 
 2. **Toolchain skeleton**, when the plan has a step 0: manifest and lock files, the test runner and its configuration, no product code. Commit it.
 
@@ -54,7 +54,7 @@ The middle of the change. The owner is not here and reads none of the reports: t
 
    The review line records the commit reviewed (HEAD; commit first — the script refuses uncommitted product changes). A product change after it means another round: the close check refuses it.
 
-   Under each report, add **Disposition**: for every finding you did not fix, where it goes — a Leftovers line in `validation.md` (with its pointer), or the reason it is not done. "Not done" alone is not a disposition.
+   Under each report, add **Disposition**: for every finding you did not fix, where it goes — a Leftovers line in `validation.md` (with its pointer); for a Nit whose cost you judge negligible, a line under "Not recorded" in `validation.md` (`- review-2 N3: <one sentence>`); or the reason it is not done. "Not done" alone is not a disposition. A leftover becomes a roadmap line the owner has to decide one day, so "Not recorded" is where a Nit that will never matter belongs; the owner sees that group on the end screen.
 
    Until the loop ends, the owner gets no report; at most one line ("the verifier is running").
 

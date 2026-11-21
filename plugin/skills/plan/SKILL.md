@@ -26,14 +26,16 @@ The last part of the owner's first sitting: the last time, before any code, that
 
 5. **Pre-read.** Run the `reviewer` subagent on the draft. Its brief: the change folder's name and the path of the plan draft — nothing else. It runs on its own fixed model; only when the owner has accepted the suggestion to run the checks on Fable, name it in the call (`model: fable`). Fold what it finds into the plan: a fix, or a point for the owner to rule. Its report stays in this conversation (plan mode writes no file); the folded result is what the owner reads.
 
-6. **Hand over.** Leave plan mode with the plan (ExitPlanMode). The owner reads "For the owner", asks until he is satisfied — you answer and revise the plan in plan mode — and accepts it. **His acceptance is the plan approval:** the plugin's hook writes the accepted text, unchanged, as `specs/<folder>/plan.md`, writes the approval mark next to it and commits both on the working branch; its result reaches you as context. When he sends the plan back instead, revise and leave plan mode again.
+6. **Go on or stop after the approval?** Before you hand the plan over, ask the owner once, with AskUserQuestion: after he approves the plan, do you (a) go on with the implementation in this session — the default, listed first — or (b) stop, so that he can clear the context (`/clear`) and say「继续」? Everything the implementation needs is on disk once the plan is approved. Ask this in every normal or high-risk change; it is the one stop the flow offers.
+
+7. **Hand over.** Tell him, in two sentences, how the dialog works: "Tell Claude what to change" with Enter sends the plan back; either "Yes" approves it. Shift+tab at the third option approves too — with the text typed there, and with an empty box it is a plain approval — so he does not press it to send the plan back. Then leave plan mode with the plan (ExitPlanMode). The owner reads "For the owner", asks until he is satisfied — you answer and revise the plan in plan mode — and accepts it. **His acceptance is the plan approval:** the plugin's hook writes the accepted text, unchanged, as `specs/<folder>/plan.md`, writes the approval mark next to it and commits both on the working branch; its result reaches you as context. When he sends the plan back instead, revise and leave plan mode again.
    - If he accepted and no "plan approved" came back: write the accepted plan to `specs/<folder>/plan.md` unchanged, commit it, check its shape, and ask him to type **「批准 plan」** as a chat message of its own — the same mark is then written.
 
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_shape.py" plan specs/<folder>/plan.md
    ```
 
-7. **Then, without a stop:** the implementation (the `implement` skill), in this session.
+8. **Then, as he chose in step 6.** Go on: the implementation (the `implement` skill), in this session, without a stop. Stop: one line — the plan is committed (`<hash>`); after `/clear` he says「继续」 — and nothing more. The `continue` skill picks the work up at the implementation's first step.
 
 ## Rules
 - Speak to the owner in the owner's language.

@@ -33,6 +33,8 @@ hook_plan() { python3 -c 'import json,sys; print(json.dumps({"hook_event_name":"
 # hook_plan_in_subagent <plan text>: the same tool call, made inside a subagent
 hook_plan_in_subagent() { python3 -c 'import json,sys; print(json.dumps({"hook_event_name":"PostToolUse","tool_name":"ExitPlanMode","agent_id":"a1","agent_type":"Plan","tool_input":{},"tool_response":{"plan":sys.argv[1]},"cwd":sys.argv[2]}))' "$1" "$PWD" | python3 "$S/hook_plan_approved.py" 2>&1; }
 hook_plan_file() { python3 -c 'import json,sys; print(json.dumps({"hook_event_name":"PostToolUse","tool_name":"ExitPlanMode","tool_input":{},"tool_response":{"filePath":sys.argv[1]},"cwd":sys.argv[2]}))' "$1" "$PWD" | python3 "$S/hook_plan_approved.py" 2>&1; }
+# hook_edit <file> <old text> <new text>: the session edits a file in place
+hook_edit() { python3 -c 'import json,sys; print(json.dumps({"tool_name":"Edit","tool_input":{"file_path":sys.argv[1],"old_string":sys.argv[2],"new_string":sys.argv[3]},"cwd":sys.argv[4]}))' "$PWD/$1" "$2" "$3" "$PWD" | python3 "$S/hook_pretool_write.py" 2>&1; }
 commit() { git add -A >/dev/null && git commit -qm "$1"; }
 log_line() { printf -- '- 2026-01-01 10:00 · %s\n' "$1" >> "$2"; }
 on_branch() { git symbolic-ref --short -q HEAD; }
@@ -146,7 +148,14 @@ expect "「接受 spec」 refused while the drafts are not committed" "$(hook_pr
 commit "spec draft"
 expect "accept spec refused: R2 not covered" "$(hook_prompt '接受 spec')" "R2 is not cited"
 cp "$T/change/validation.md" $F/validation.md && commit "validation covers R2"
+echo "<html>mock</html>" > $F/mock.html && commit "a mock"
+expect "accept spec refused: the mock is not confirmed" "$(hook_prompt '接受 spec')" "the mock is not confirmed"
+sed -i.bak '/^## Mock$/,/^## Fact values$/{/^## Fact values$/!d;}' $F/spec.md && rm $F/spec.md.bak && commit "spec without a Mock section"
+expect "accept spec refused: a mock and no Mock section" "$(hook_prompt '接受 spec')" "no '## Mock' section"
+cp "$T/change/spec.md" $F/spec.md
+sed -i.bak 's/^- Confirmed by:$/- Confirmed by: Leon, 2026-01-01/' $F/spec.md && rm $F/spec.md.bak && commit "mock confirmed"
 CHECK="$(python3 "$S/accept.py" spec --check)"
+expect "accept spec passes once the mock is confirmed" "$CHECK" "nothing refuses"
 expect "accept spec --check names the intent too" "$CHECK" "$F/intent.md"
 expect "accept spec --check changes nothing" "$CHECK" "nothing was changed"
 expect "state names the sentence for the spec" "$(python3 "$S/state.py")" "接受 spec"
@@ -156,11 +165,12 @@ expect "state: the plan is drafted in plan mode" "$(python3 "$S/state.py")" "pla
 expect "product file denied before plan approved" "$(hook_write 'src/app.py')" '"deny"'
 PLAN_TEXT="$(sed 's#`<path>`#`src/app.py` `tests/test_app.py`#' "$T/change/plan.md")"
 expect "a plan without the template's shape is not recorded" "$(hook_plan 'just add the phone number')" "lacks the template's shape"
-expect "…and writes neither plan.md nor the mark" "$(ls $F | tr '\n' ' ')" "intent.md spec.md validation.md "
+expect "…and writes neither plan.md nor the mark" "$(ls $F | tr '\n' ' ')" "intent.md mock.html spec.md validation.md "
 expect "a plan accepted inside a subagent records nothing" "$(hook_plan_in_subagent "$PLAN_TEXT")" ""
 expect "…and writes no mark" "$(ls $F | grep -c plan)" "0"
 OUT="$(hook_plan "$PLAN_TEXT")"
 expect "accepting the plan in plan mode approves it" "$OUT" "plan approved"
+expect "…the session is told to do what the owner chose: stop or go on" "$OUT" "He chose to stop"
 expect "…plan.md is the accepted text" "$(cat $F/plan.md)" '`src/app.py` `tests/test_app.py`'
 expect "…the mark is committed on the branch" "$(git show HEAD:$F/plan-approved.txt)" "accepted in plan mode"
 expect "…and main does not move" "$(git show main:$F/plan.md 2>&1)" "not in 'main'"
@@ -230,6 +240,41 @@ expect "close check: leftover not in the roadmap" "$(python3 "$S/close_check.py"
 expect "bash hook allows todo_add" "$(hook_bash "python3 \"$S/todo_add.py\" --who Leon \"footer year is wrong (2026-01-01-contact L1)\"")" '"allow"'
 expect "todo_add commits two lines at once" "$(python3 "$S/todo_add.py" --who Leon "footer year is wrong (2026-01-01-contact L1)" "footer month is wrong")" "added 2 lines"
 expect "…in one commit on main" "$(git log -1 --format=%s main)" "(+1 more)"
+OUT="$(python3 "$S/todo_add.py" --who "review loop" "header is too tall" --who Kitty "logo is the old one")"
+expect "todo_add: who raised it, line by line (first)" "$OUT" "· review loop · header is too tall"
+expect "todo_add: who raised it, line by line (second)" "$OUT" "· Kitty · logo is the old one"
+expect "todo_add refuses a --who without a name after it" "$(python3 "$S/todo_add.py" --who Leon "a line" --who)" "Usage:"
+git merge -q --no-edit main
+TODO_LINE="$(grep 'header is too tall' specs/roadmap.md)"
+DENY="$(hook_edit specs/roadmap.md "$TODO_LINE" "")"
+expect "edit hook: deleting a To do line on a branch is denied" "$DENY" '"deny"'
+expect "…the refusal names the fixed-directly route" "$DENY" "fixed-directly --commit"
+expect "edit hook: rewriting a To do line is denied" "$(hook_edit specs/roadmap.md "header is too tall" "header is fine")" '"deny"'
+expect "edit hook: adding a To do line is denied" "$(hook_edit specs/roadmap.md "$TODO_LINE" "$TODO_LINE
+- 2026-01-01 · Leon · one more line")" "todo_add.py"
+git rev-parse HEAD > "$(git rev-parse --git-dir)/MERGE_HEAD"   # a merge is being resolved
+expect "edit hook: not held while a merge is being resolved" "$(hook_edit specs/roadmap.md "$TODO_LINE" "")" ""
+rm "$(git rev-parse --git-dir)/MERGE_HEAD"
+expect "edit hook: the Status line may be edited" "$(hook_edit specs/roadmap.md "Status:" "Status: stage 1 done;")" ""
+expect "edit hook: a planned stage may be added" "$(hook_edit specs/roadmap.md "## To do" "- stage 9: the other half of this change
+
+## To do")" ""
+grep -v 'header is too tall' specs/roadmap.md > "$WORK/roadmap" && cp "$WORK/roadmap" specs/roadmap.md   # as a shell command would
+expect "close check: a To do line removed by the branch itself" "$(python3 "$S/close_check.py")" "this branch removed or rewrote a To do line"
+python3 -c 'import sys; p="specs/roadmap.md"; t=open(p).read(); open(p,"w").write(t.replace("## Known limits", "- 2026-01-01 · Leon · slipped in on the branch\n\n## Known limits", 1))'
+expect "close check: a To do line added by the branch itself" "$(python3 "$S/close_check.py")" "this branch added a To do line"
+git checkout -q specs/roadmap.md
+expect "close check: To do untouched passes" "$(python3 "$S/close_check.py")" "PASS to do"
+FIX="$(git rev-parse --short HEAD)"
+expect "roadmap_edit fixed-directly needs its commit" "$(hook_bash "python3 \"$S/roadmap_edit.py\" delete --match \"header is too tall\" --reason fixed-directly")" "wrong arguments"
+expect "roadmap_edit fixed-directly refuses an unknown commit" "$(hook_bash "python3 \"$S/roadmap_edit.py\" delete --match \"header is too tall\" --reason fixed-directly --commit 0123abc")" "not a commit of this repository"
+ASK="$(hook_bash "python3 \"$S/roadmap_edit.py\" delete --match \"header is too tall\" --reason fixed-directly --commit $FIX")"
+expect "roadmap_edit fixed-directly asks" "$ASK" '"ask"'
+expect "…and the prompt shows the commit" "$ASK" "fixed by commit $FIX"
+expect "roadmap_edit fixed-directly deletes (after the click)" "$(python3 "$S/roadmap_edit.py" delete --match "header is too tall" --reason fixed-directly --commit $FIX)" "deleted (fixed-directly, $FIX)"
+expect "…the commit on main names the fix" "$(git log -1 --format=%s main)" "fixed directly ($FIX)"
+python3 "$S/roadmap_edit.py" delete --match "logo is the old one" --reason dismissed >/dev/null
+git merge -q --no-edit main
 expect "state: the end screen is done, the close is next" "$(python3 "$S/state.py")" "skill: close"
 expect "「确认合并」 refused while changes are uncommitted" "$(hook_prompt '确认合并')" "uncommitted changes"
 expect "record review refused while product changes are uncommitted" "$(python3 "$S/record.py" review --by reviewer --important 0 --nit 0 --report $REPORT)" "commit the product changes first"
@@ -292,6 +337,10 @@ log_line "review (verifier) · Important open: 0 · at $(git rev-parse --short H
 ASK="$(hook_bash "python3 \"$S/merge.py\"")"
 expect "merge asks" "$ASK" '"ask"'
 expect "merge prompt lists the changed files" "$ASK" "src/app.py"
+PROMPT="$(printf '%s' "$ASK" | python3 -c 'import json,sys; print(json.load(sys.stdin)["hookSpecificOutput"]["permissionDecisionReason"])')"
+expect "merge prompt: the changed files come before the intent" "$(printf '%s' "$PROMPT" | sed -n 2p)" "Changed: "
+expect "merge prompt: the intent is its title only, on the last line" "$(printf '%s' "$PROMPT" | tail -1)" "Intent: "
+expect "merge prompt: short enough not to fold (10 lines)" "$( [ "$(printf '%s\n' "$PROMPT" | wc -l)" -le 10 ] && echo short )" "short"
 expect "merge (after the click)" "$(python3 "$S/merge.py")" "merged 2026-01-02-footer"
 expect "after the click the checkout is on main" "$(on_branch)" "main"
 expect "state: small change not yet read" "$(python3 "$S/state.py")" "not yet read by a fresh session: 1"
@@ -301,6 +350,14 @@ expect "roadmap_edit asks and shows the line" "$(hook_bash "python3 \"$S/roadmap
 expect "roadmap_edit deletes" "$(python3 "$S/roadmap_edit.py" delete --match "footer year" --reason dismissed)" "deleted (dismissed)"
 python3 "$S/roadmap_edit.py" delete --match "footer month" --reason dismissed >/dev/null
 expect "state: no open line" "$(python3 "$S/state.py")" "to do: no open line"
+
+echo "6b. project copies of the templates"
+STATE="$(python3 "$S/state.py")"
+expect "state: a copy without a template mark is reported" "$STATE" ".claude/flow.json (no mark; template "
+expect "state: a copy in step with its template is not reported" "$(printf '%s' "$STATE" | grep -c 'REVIEW.md (')" "0"
+sed -i.bak 's/flow-template: [0-9-]*/flow-template: 2020-01-01/' REVIEW.md && rm REVIEW.md.bak
+expect "state: a copy older than its template is reported" "$(python3 "$S/state.py")" "REVIEW.md (2020-01-01; template "
+git checkout -q REVIEW.md
 
 echo "7. a project with an origin: main is pushed and kept in step"
 ORIGIN="$WORK/origin.git"

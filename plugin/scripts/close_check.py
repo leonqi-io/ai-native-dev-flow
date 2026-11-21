@@ -2,11 +2,14 @@
 """Close check: everything that must hold before a change is merged.
 
 Runs, for the current branch's change folder:
-  shape        every artifact of the tier has its sections
+  shape        every artifact of the tier has its sections; a change with a
+               mock names who confirmed it                                    (normal, high-risk)
   R-ID         every R-ID of spec.md is cited in validation.md §0 / §1 / §2   (normal, high-risk)
   test scope   no unreleased change to an existing test file since the lock started
   plan drift   no changed product file missing from plan.md                    (normal, high-risk)
   leftovers    every leftover points to a new intent or to the roadmap
+  to do        the branch itself did not remove, rewrite or add a line of the
+               roadmap's To do section (whatever made the change)
   review       the Approval log's latest review line has no open Important finding,
                its report is on disk, and no product file changed after the
                commit it records
@@ -61,6 +64,21 @@ def changed_since_review(root, reviewed_at, config):
             % (reviewed_at, ", ".join(changed[:5]) + (" …" if len(changed) > 5 else ""))]
 
 
+def todo_problems(root):
+    """The roadmap's To do lines move on `main` only; a branch that changed them itself is refused."""
+    base = flowlib.merge_base(root)
+    before = flowlib.read_at(root, base, flowlib.ROADMAP) if base else None
+    after = flowlib.read_worktree(root, flowlib.ROADMAP)
+    if before is None or after is None:
+        return []
+    removed, added = flowlib.todo_difference(before, after)
+    problems = ["this branch removed or rewrote a To do line: %s" % line for line in removed]
+    problems += ["this branch added a To do line: %s" % line for line in added]
+    if problems:
+        problems.append("put the section back as it is on `main` (git merge main brings its lines) — " + flowlib.todo_route())
+    return problems
+
+
 def validation_problems(root, folder):
     answers = record.latest_validation(flowlib.approval_log(root, folder))
     if answers is None:
@@ -90,6 +108,8 @@ def run(root, folder, config=None):
         path = "%s/%s.md" % (folder, name)
         kind = check_shape.kind_of(path, tier)
         shape += ["%s: %s" % (path, sentence) for sentence in check_shape.problems_in(kind, flowlib.read_worktree(root, path), tier)]
+    if tier != "small":
+        shape += flowlib.mock_review_problems(root, folder)
     results.append(("shape", shape))
     if tier != "small":
         results.append(("R-ID", check_rid_coverage.run(root, folder)))
@@ -97,6 +117,7 @@ def run(root, folder, config=None):
     if tier != "small":
         results.append(("plan drift", check_plan_drift.run(root, folder, config)[0]))
     results.append(("leftovers", check_leftovers.run(root, folder)))
+    results.append(("to do", todo_problems(root)))
     results.append(("review", review_problems(root, folder, tier, config)))
     if tier != "small":
         results.append(("validation", validation_problems(root, folder)))

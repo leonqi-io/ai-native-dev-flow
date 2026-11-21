@@ -10,6 +10,7 @@ This repository holds our development flow v3: the rules (`docs/`, in Chinese) a
 
 ## Verifying your work
 - A change to `plugin/scripts/` or `plugin/hooks/` is done when `bash tools/selftest.sh` is green and its output is pasted. Add a line to the self-test for every new refusal, prompt or pass.
+- A change to `plugin/templates/project/CLAUDE.md`, `REVIEW.md` or `flow.json`: set its `flow-template` mark to today's date in the same change — the state report compares a project's copy with it, and no script checks that the mark was moved.
 - A change to a skill's `description` or `when_to_use`: say that its eval case has to be re-run; do not edit the generated block in `docs/skills.md` by hand.
 
 ## Conventions

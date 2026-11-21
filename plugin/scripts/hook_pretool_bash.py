@@ -6,7 +6,8 @@ Three kinds of answer:
          reason names the route (the owner's approval sentence);
   ask    the three fixed scripts whose run *is* the owner's act when he
          approves the prompt (accept.py intent for a small change, merge.py
-         for a small change, roadmap_edit.py);
+         for a small change — its prompt leads with the changed files —
+         and roadmap_edit.py);
   allow  the plugin's read-only scripts and `--check` runs, todo_add.py
          (append-only), sync_main.py (a fast-forward to origin/main) and
          record.py (a line in the change's own Approval log).
@@ -36,6 +37,9 @@ SHELL_JOIN = re.compile(r"[;&|<>`\n]|\$\(")
 ON_MAIN_VERBS = {"commit", "merge", "rebase", "reset", "revert", "cherry-pick", "am", "pull"}
 OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 ALLOWED = {"todo_add", "sync_main", "record"}
+# Files the small change's merge prompt lists by name. Basis: the prompt shows about ten lines before it
+# folds; the question, the publishing line, the total and the intent's title take four of them.
+LISTED_FILES = 6
 GH_PR_MERGE = re.compile(r"(?:^|[\s;&|(`])gh\s+pr\s+merge\b")
 
 
@@ -94,12 +98,17 @@ def handle_own(name, arguments, root, config):
         try:
             parsed = roadmap_edit.parse(shlex.split(arguments))
             if not parsed:
-                decide("deny", "roadmap_edit.py: wrong arguments. Usage: delete --match \"<text>\" --reason fix-now|dismissed, or move --match \"<text>\"")
-            _, line = roadmap_edit.find_line(root, parsed[1])
+                decide("deny", "roadmap_edit.py: wrong arguments. Usage: " + roadmap_edit.USAGE)
+            action, match, reason, commit = parsed
+            fixed_by = roadmap_edit.fixing_commit(root, commit) if commit else None
+            _, line = roadmap_edit.find_line(root, match)
         except (ValueError, flowlib.FlowError) as error:
             decide("deny", "roadmap_edit.py: %s" % error)
-        action = "move to Planned stages" if parsed[0] == "move" else "delete (%s)" % parsed[2]
-        decide("ask", "Roadmap To do — %s:\n%s" % (action, line))
+        if action == "move":
+            label = "move to Planned stages"
+        else:
+            label = "delete (%s)" % (reason + (", fixed by commit %s" % fixed_by if fixed_by else ""))
+        decide("ask", "Roadmap To do — %s:\n%s" % (label, line))
     if name == "accept" and arguments == "setup":
         decide("deny", "Accepting the project setup is the owner's act: %s. Do not look for another way to run it." % flowlib.owner_route("setup"))
     if tier != "small":
@@ -127,13 +136,36 @@ def handle_own(name, arguments, root, config):
     if precheck.returncode != 0:
         refusals = [line for line in precheck.stdout.splitlines() if line.startswith(("FAIL", "REFUSED"))]
         decide("deny", "merge.py would refuse this merge — fix these first:\n" + "\n".join(refusals))
+    decide("ask", merge_prompt(root, intent, config["deploys"]))
+
+
+def changed_files_block(root):
+    """The files this branch changes against `main`: a total, then one line per file, at most LISTED_FILES of them."""
     base = flowlib.merge_base(root)
-    stat = flowlib.git_out(["diff", "--stat", base, "HEAD"], cwd=root) if base else "(no merge base with main)"
-    publishes = "Merging publishes to production (`deploys` is true in .claude/flow.json).\n\n" if config["deploys"] else ""
-    decide(
-        "ask",
-        "Merge this small change into `main`?\n\n%sIntent:\n%s\n\nChanged files:\n%s" % (publishes, clip(intent, 900), clip(stat, 1200)),
-    )
+    if not base:
+        return "Changed: (no merge base with `main`)"
+    total = flowlib.git_out(["diff", "--shortstat", base, "HEAD"], cwd=root).strip() or "no file changed"
+    rows = [row.split("\t") for row in flowlib.git_out(["diff", "--numstat", base, "HEAD"], cwd=root).splitlines()]
+    lines = ["Changed: " + total]
+    lines += ["  %s  +%s −%s" % (name, added, removed) for added, removed, name in rows[:LISTED_FILES]]
+    if len(rows) > LISTED_FILES:
+        lines.append("  … and %d more file(s): git diff --stat %s HEAD" % (len(rows) - LISTED_FILES, flowlib.MAIN))
+    return "\n".join(lines)
+
+
+def merge_prompt(root, intent, publishes):
+    """The small change's merge prompt: what the owner has to look at comes first.
+
+    The prompt folds after about ten lines (seen twice, 2026-11-20), and the
+    owner read the whole intent at the first click — so the changed files lead
+    and the intent is its title only.
+    """
+    title = next((line.lstrip("# ").strip() for line in (intent or "").splitlines() if line.startswith("# ")), "(no title)")
+    lines = ["Merge this small change into `main`?"]
+    if publishes:
+        lines.append("Merging publishes to production (`deploys` is true in .claude/flow.json).")
+    lines += [changed_files_block(root), "Intent: " + title]
+    return "\n".join(lines)
 
 
 def git_segments(command):

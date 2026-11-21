@@ -12,14 +12,14 @@
 | continue | 入口 | 想接着做，不确定到哪一步了 | 跑状态脚本，说现在在哪个阶段，加载那个阶段的 skill | 接到对应的 skill |
 | setup-project | 立项 | 一个仓库第一次用这套流程 | 和 owner 写 mission、decisions、roadmap，以及项目的 CLAUDE.md、REVIEW.md、`.claude/flow.json`；跑问答；把要进 `main` 的文件清单给 owner 看 | 请 owner 说「接受立项」 |
 | intent | Plan | 想做一个改动，不是小改动 | 定档位，同步 `main`，建文件夹和分支，起草 intent.md，直接进问答 | 不停，接着写 spec |
-| spec | Design | intent 写好了 | researcher 查事实；写 spec.md（含事实值表）和 validation.md（清点和判断题分开）；跑问答；需要时提出拆小；试跑每条命令；R-ID 覆盖检查；给 owner 一屏「做成什么样」 | 请 owner 说「接受 spec」（intent、spec、validation 一起进 `main`），之后不停，接着写 plan |
-| plan | Build | spec 已接受 | 在 plan mode 里写 plan（给 owner 的一节固定四样）；reviewer 预读 spec 和 plan；退出 plan mode 交给 owner | owner 在 plan mode 里接受计划就是批准；之后不停，接着实现 |
+| spec | Design | intent 写好了 | researcher 查事实；写 spec.md（含事实值表）和 validation.md（清点和判断题分开）；跑问答；需要时提出拆小；UI 改动做 mock 评审（researcher 对比、owner 看 mock 本身、记确认人）；试跑每条命令；R-ID 覆盖检查；给 owner 一屏「做成什么样」 | 请 owner 说「接受 spec」（intent、spec、validation 一起进 `main`），之后不停，接着写 plan |
+| plan | Build | spec 已接受 | 在 plan mode 里写 plan（给 owner 的一节固定四样）；reviewer 预读 spec 和 plan；弹一次问询（批准之后接着做还是先停）；退出 plan mode 交给 owner | owner 在 plan mode 里接受计划就是批准；之后按他选的：接着实现，或停下等他 `/clear` 后说「继续」 |
 | implement | Build、Test | plan 已批准；或有发现要修 | 红测试并提交 `red-run.txt`；实现到绿；code-reviewer → verifier → reviewer 循环到 0 条 Important，报告落盘 | 不停，接着进结尾那一屏 |
 | small-change | 全程（简化） | 错字、文案、配置值、依赖升级、单处修复 | 起草短 intent；第一次点击；写 validation、改、验证、评审，一路不停 | 第二次点击（合并提示） |
 | review | Deploy | owner 想要一次新 session 的评审；或要复核它的发现 | 新 session 读 REVIEW.md，三遍加固定检查，报告落盘，用 `record.py` 记一行 | 有 Important 就交回实现的 session；没有就回到原来那一步 |
 | validate | Deploy | 评审循环结束，owner 来看结果 | 清点由 session 自己做并列表；一屏给 owner；owner 只答判断题（可以说「这题不判断」）；`record.py` 记验收行 | 全过就不停，接着收尾 |
 | close | Deploy | 结尾那一屏过了 | 处理遗留项（待办一次提交），更新 roadmap 状态行（按合并之后写），跑收尾检查；开 PR 的项目推分支、开 PR | 请 owner 说「确认合并」 |
-| todo | Maintain | 发现一个不属于当前改动的问题；或要过一遍待办 | 往 roadmap 的「To do」加一行；逐行分流（现在修、排期、不做） | 说还剩几行未决 |
+| todo | Maintain | 发现一个不属于当前改动的问题；或要过一遍待办 | 往 roadmap 的「To do」加一行；逐行分流（现在修、排期、不做、已经直接改掉） | 说还剩几行未决 |
 
 没有一个 skill 设成只能由人启动。会移动 `main` 的几处都由固定脚本把关：owner 的批准句，或者小改动的确认提示。
 

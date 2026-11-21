@@ -22,7 +22,8 @@ The owner's second sitting. Everything that can be counted or compared is done b
    - the judgment questions (J1, J2 …), each with what a right answer shows, and how he looks at it (a link, a command);
    - what differs from what was agreed at the start: the plan's "Spec changed after acceptance" and "Departures", and the ruling lines of the Approval log;
    - the tests changed after the red run and the new ones: the output of `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_test_scope.py"`;
-   - the leftovers, each with where it goes, and the findings not fixed with their disposition.
+   - the leftovers, each with where it goes, and the findings not fixed with their disposition;
+   - the "Not recorded" group of `validation.md`, as one block: he accepts the group, or names the ones to keep. Each one he keeps becomes a Leftovers line with its pointer. Record his answer: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/record.py" ruling "not recorded: group accepted" --checked "the end screen"` (or what he kept).
 
 5. **His answers.** Ask the judgments one at a time. Each answer is pass, fail (note what he saw, word for word), or "not judged" (「这题不判断」) — only he can give that one; for it, add a Leftovers line naming the question (J2) and where it goes. You do not answer a judgment in his place.
 

@@ -27,7 +27,8 @@ unchanged on the branch, then writes the same mark.
 
 For setup, intent and spec it refuses unless the files are committed on the
 working branch, have the shape of their template, and (for `spec`) every
-R-ID is covered. It then commits exactly those files onto `main` and merges
+R-ID is covered and a mock in the folder is confirmed (spec.md's Mock
+section). It then commits exactly those files onto `main` and merges
 `main` back into the working branch, so the branch contains its own approval
 commits.
 
@@ -229,6 +230,7 @@ def main():
     problems = shape_problems(root, what, files, tier)
     if what == "spec":
         problems += check_rid_coverage.run(root, folder)
+        problems += flowlib.mock_review_problems(root, folder)
     if problems:
         return fail("\n  ".join(["the files are not ready:"] + problems))
     label = "project setup (amended)" if what == "setup" else "%s: %s" % (MESSAGES[what], folder.rsplit("/", 1)[-1])

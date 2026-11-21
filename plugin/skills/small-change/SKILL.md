@@ -42,7 +42,7 @@ Small = **no behaviour a user would notice changes, or one place only**. Not sma
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/merge.py"
    ```
 
-   The prompt shows the intent and the changed files and, where a merge publishes, "Merging publishes to production". Stop here; the owner decides. (No prompt: he types「确认合并」as a chat message of its own.) After the merge `main` is pushed where there is an origin, the checkout is on `main` and the branch is deleted.
+   The prompt leads with the changed files and their line counts (the owner's own check of a small change), then the intent's title; where a merge publishes it says "Merging publishes to production". Stop here; the owner decides. (No prompt: he types「确认合并」as a chat message of its own.) After the merge `main` is pushed where there is an origin, the checkout is on `main` and the branch is deleted.
 
 6. **Afterwards.** If the change came from a To do line, remove it: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap_edit.py" delete --match "<text>" --reason fix-now`.
 
