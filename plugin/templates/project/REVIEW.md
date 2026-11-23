@@ -1,6 +1,6 @@
 # Review instructions
 
-<!-- flow-template: 2026-11-21 652ebf7 — the mark of the plugin template this copy was last brought in step with (copy it from the template; never edit it by hand). The state report says when the template has moved on. -->
+<!-- flow-template: 2026-11-22 f731c63 — the mark of the plugin template this copy was last brought in step with (copy it from the template; never edit it by hand). The state report says when the template has moved on. -->
 
 Read by the reviewer subagent, which the implementing session runs with the change folder's name as its only brief — and by a fresh-session review when the owner asks for one. The reviewer reports; it does not approve, block or change code.
 
@@ -28,6 +28,7 @@ Before the owner sees the plan, the reviewer reads spec, validation and the plan
 ## Severity
 - **Important** — wrong behaviour, a security problem, a requirement not met, a departure from the plan that the plan does not record, a validation step that does not hold as written. Handled before the owner is called to the end screen. Every Important finding says how to confirm it: a command, or a step of `validation.md`.
 - **Nit** — worth a fix, not worth a delay. When there are many of one kind, report the kind once.
+- **A requirement over open input** (the spec names the forms it must get right and what catches the rest): a form outside the spec's list that you made up is a **Nit**, however it fails — a leftover that does not hold the review loop; report the made-up forms of one requirement as one finding. It is Important only when the form is on the spec's list or appears in a real sample.
 
 ## Do not report
 - Style, naming, readability, formatting — lint and the code-reviewer own these.

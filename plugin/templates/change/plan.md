@@ -10,6 +10,7 @@ Four parts, always; the reviewer subagent has read the spec and this plan once b
 - Riskiest step: <...>
 - Alternatives rejected: <what, and why>
 - Points to rule: <a decision the plan needs, with its default — or "None.">
+- When you are needed midway: <the steps that need you at the machine or need your word, grouped, before the review loop, with what you do there — or "None.">
 - Revert path: <high-risk tier only — how this is undone. A project whose bad release is acceptable names the path; no rehearsal.>
 
 ## Files that change

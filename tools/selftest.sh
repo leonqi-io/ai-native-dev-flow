@@ -154,8 +154,13 @@ sed -i.bak '/^## Mock$/,/^## Fact values$/{/^## Fact values$/!d;}' $F/spec.md &&
 expect "accept spec refused: a mock and no Mock section" "$(hook_prompt '接受 spec')" "no '## Mock' section"
 cp "$T/change/spec.md" $F/spec.md
 sed -i.bak 's/^- Confirmed by:$/- Confirmed by: Leon, 2026-01-01/' $F/spec.md && rm $F/spec.md.bak && commit "mock confirmed"
+sed -i.bak 's/^| <the report.*$/| The report to Kitty | Kitty | Chinese | `report-sample.md` | |/' $F/spec.md && rm $F/spec.md.bak && commit "an output a person reads"
+expect "accept spec refused: an output's sample is not on disk" "$(hook_prompt '接受 spec')" "(report-sample.md) is not on disk"
+echo "报告样例" > $F/report-sample.md && commit "the sample"
+expect "accept spec refused: the sample is not confirmed" "$(hook_prompt '接受 spec')" "'The report to Kitty' is not confirmed"
+sed -i.bak 's/^\(| The report to Kitty .*\) | |$/\1 | Leon for Kitty, 2026-01-01 |/' $F/spec.md && rm $F/spec.md.bak && commit "sample confirmed"
 CHECK="$(python3 "$S/accept.py" spec --check)"
-expect "accept spec passes once the mock is confirmed" "$CHECK" "nothing refuses"
+expect "accept spec passes once the mock and the sample are confirmed" "$CHECK" "nothing refuses"
 expect "accept spec --check names the intent too" "$CHECK" "$F/intent.md"
 expect "accept spec --check changes nothing" "$CHECK" "nothing was changed"
 expect "state names the sentence for the spec" "$(python3 "$S/state.py")" "接受 spec"
@@ -165,7 +170,7 @@ expect "state: the plan is drafted in plan mode" "$(python3 "$S/state.py")" "pla
 expect "product file denied before plan approved" "$(hook_write 'src/app.py')" '"deny"'
 PLAN_TEXT="$(sed 's#`<path>`#`src/app.py` `tests/test_app.py`#' "$T/change/plan.md")"
 expect "a plan without the template's shape is not recorded" "$(hook_plan 'just add the phone number')" "lacks the template's shape"
-expect "…and writes neither plan.md nor the mark" "$(ls $F | tr '\n' ' ')" "intent.md mock.html spec.md validation.md "
+expect "…and writes neither plan.md nor the mark" "$(ls $F | tr '\n' ' ')" "intent.md mock.html report-sample.md spec.md validation.md "
 expect "a plan accepted inside a subagent records nothing" "$(hook_plan_in_subagent "$PLAN_TEXT")" ""
 expect "…and writes no mark" "$(ls $F | grep -c plan)" "0"
 OUT="$(hook_plan "$PLAN_TEXT")"
@@ -229,6 +234,11 @@ EOF
 mkdir -p src/pages src/data && echo "page" > 'src/pages/[slug].astro' && echo "{}" > src/data/pages.json
 expect "plan drift reads continuation lines and square brackets" "$(python3 "$S/check_plan_drift.py")" "PASS plan drift"
 expect "close check: no validation entry" "$(python3 "$S/close_check.py")" "no validation entry"
+echo "paused after review round 1" > $F/handoff.md
+expect "close check: a paused session's note left behind" "$(python3 "$S/close_check.py")" "handoff.md is still there"
+expect "state names the note first" "$(python3 "$S/state.py")" "handoff: $F/handoff.md"
+rm $F/handoff.md
+expect "…and no longer once it is deleted" "$(python3 "$S/close_check.py")" "PASS handoff"
 expect "record validation refuses a question §0 does not ask" "$(python3 "$S/record.py" validation J9=pass)" "REFUSED"
 python3 "$S/record.py" validation J1=fail >/dev/null
 expect "close check: a failed judgment" "$(python3 "$S/close_check.py")" "J1 failed"
@@ -237,6 +247,8 @@ expect "record validation writes「not judged」" "$(python3 "$S/record.py" vali
 expect "close check: not judged needs a leftover" "$(python3 "$S/close_check.py")" "J1 was not judged"
 sed -i.bak 's/^- None\.$/- **L1** J1 not judged: footer year → roadmap: to do/' $F/validation.md && rm $F/validation.md.bak
 expect "close check: leftover not in the roadmap" "$(python3 "$S/close_check.py")" "(2026-01-01-contact L1)"
+TAGS="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import check_leftovers; print(sorted(check_leftovers.roadmap_tags("- a (2026-01-01-contact L1, L4) · (other L9) · b (2026-01-01-contact L7)", "2026-01-01-contact")))' "$S")"
+expect "leftovers: one roadmap line may carry several IDs" "$TAGS" "['L1', 'L4', 'L7']"
 expect "bash hook allows todo_add" "$(hook_bash "python3 \"$S/todo_add.py\" --who Leon \"footer year is wrong (2026-01-01-contact L1)\"")" '"allow"'
 expect "todo_add commits two lines at once" "$(python3 "$S/todo_add.py" --who Leon "footer year is wrong (2026-01-01-contact L1)" "footer month is wrong")" "added 2 lines"
 expect "…in one commit on main" "$(git log -1 --format=%s main)" "(+1 more)"

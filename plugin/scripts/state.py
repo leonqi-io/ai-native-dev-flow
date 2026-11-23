@@ -48,6 +48,7 @@ def gather(root):
         info["spec_drafted"] = flowlib.read_worktree(root, folder + "/spec.md") is not None
         info["plan_approved"] = flowlib.plan_approved(root, folder)
         info["red"] = flowlib.red_committed(root, folder)
+        info["handoff"] = flowlib.handoff_note(root, folder)
         log = flowlib.approval_log(root, folder)
         info["review"] = record.latest_review(log)
         info["validation"] = record.latest_validation(log)
@@ -202,6 +203,8 @@ def render(info):
             lines.append("red-run.txt: %s" % ("committed (test lock on)" if info["red"] else "not committed"))
     lines.append("stage: %s — %s" % (stage, situation))
     lines.append("next: " + next_step)
+    if info.get("handoff"):
+        lines.append("handoff: %s — an earlier session paused here; read it before anything else" % info["handoff"])
     if act:
         line = flowlib.script_line("merge") if act == "merge" else flowlib.script_line("accept", act)
         lines.append("owner's approval: type「%s」in the chat, as a message of its own — or run in your own terminal: %s" % (flowlib.owner_sentence(act), line))

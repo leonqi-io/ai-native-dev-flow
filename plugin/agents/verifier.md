@@ -31,8 +31,11 @@ You check the commit that is to be handed over: `git rev-parse --short HEAD`, wi
    - characters outside ASCII, an invalid encoding, quotes and markup characters;
    - the same input twice (a second run, a duplicate).
    Name in the report which kinds you tried where.
+
+   **A requirement over open input** — one the spec writes with the forms it must get right and what catches the rest (it recognises or parses free text, an outside page or file): try the forms on the spec's list and the real samples first. A form outside the list that you made up is a **Nit**, however it fails; it is Important only when it is on the list or in a real sample. Report the made-up forms of one requirement as one finding — the session records them as one leftover.
 4. **Against `plan.md`** (normal, high-risk): each file of the diff is in "Files that change"; each step of "Order of work" is done; each item of "Proof" holds. For every mismatch say how to confirm it.
 5. **UI change:** take a screenshot of each state the spec names and compare it with `mock.html`. Name each visible difference.
+   **An output a person reads** (the rows of the spec's "Outputs a person reads"): produce it once and compare it with its sample — language, sections, columns, no value shown as it is stored. Name each difference.
 6. **Small change only — the review result.** Run the fixed checks of `REVIEW.md`:
    - **Did this change alter behaviour a user would notice in more than one place?** Judge it from the diff alone. If yes: it should have been a normal change — Important. A change that alters no behaviour is small however many files it touches; a fix that alters behaviour in one place is small too.
    - For each `test-release:` entry of the Approval log: was the test weakened?

@@ -9,7 +9,9 @@ Each bullet of validation.md's Leftovers section has to point somewhere:
     - None.
 
 For the two roadmap pointers, specs/roadmap.md (on `main` or in the working
-tree) must carry a line containing `(<folder name> L2)` in that section.
+tree) must carry a line containing `(<folder name> L2)` in that section. The
+leftovers of one requirement share one roadmap line, which then carries all
+their IDs: `(<folder name> L2, L7, L10)`.
 
 Usage: check_leftovers.py [<change folder>]
 """
@@ -28,6 +30,14 @@ def roadmap_sections(root, heading):
     """The section's text on main and in the working tree, joined."""
     texts = [flowlib.roadmap_on_main(root), flowlib.read_worktree(root, flowlib.ROADMAP)]
     return "\n".join(flowlib.section(text, heading) or "" for text in texts if text)
+
+
+def roadmap_tags(text, name):
+    """The leftover IDs the text carries for this folder: `(<folder> L2)` and `(<folder> L2, L7, L10)`."""
+    found = set()
+    for group in re.findall(r"\(%s ((?:L\d+)(?:\s*,\s*L\d+)*)\)" % re.escape(name), text):
+        found.update(re.findall(r"L\d+", group))
+    return found
 
 
 def run(root, folder):
@@ -55,8 +65,9 @@ def run(root, folder):
                 problems.append("leftover needs an ID (L1, L2, ...) to be found in the roadmap: %s" % item)
                 continue
             tag = "(%s %s)" % (name, identifier.group(1))
-            if tag not in roadmap_sections(root, roadmap.group(1)):
-                problems.append("no line containing '%s' in the roadmap's '%s' section" % (tag, roadmap.group(1)))
+            if identifier.group(1) not in roadmap_tags(roadmap_sections(root, roadmap.group(1)), name):
+                problems.append("no line containing '%s' in the roadmap's '%s' section (alone, or with the other IDs "
+                                "of its line: '(%s L1, L2)')" % (tag, roadmap.group(1), name))
         else:
             problems.append("leftover has no pointer (new intent, roadmap: to do, roadmap: known limits): %s" % item)
     return problems

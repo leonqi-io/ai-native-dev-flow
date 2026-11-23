@@ -32,6 +32,7 @@ Run the passes and the fixed checks of `REVIEW.md`, in its order. Besides:
 - **Validation steps as written.** A step of validation §0, §2 or §3 that, run exactly as written, does not give its expected result is **Important** — even when the product is right and the record is wrong. Its confirmation is that step.
 - **Released test changes.** For each `test-release:` line of the Approval log, read the test's change since the red run: was the §1 row it belongs to weakened?
 - **New test-setup files.** A test file the change adds that sets how tests run (a `conftest.py`, the test runner's configuration, a shared fixture or setup file): does it skip, filter, mark as expected to fail or otherwise alter a test that existed before the red run? If yes — Important. A new file needs no release line, so this is the only check on it.
+- **A requirement over open input** (the spec names the forms it must get right and what catches the rest): a form outside that list that you made up is a Nit, not Important, unless it appears in a real sample — `REVIEW.md`'s Severity says the same.
 - **A re-check.** When `reports/` holds an earlier review, check each of its Important findings against the current HEAD first, and say for each: fixed (how you confirmed it) or still open.
 
 ## How you report

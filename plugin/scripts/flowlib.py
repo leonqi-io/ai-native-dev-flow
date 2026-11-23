@@ -501,6 +501,68 @@ def mock_review_problems(root, folder):
     return []
 
 
+# ---------------------------------------------------- outputs a person reads
+
+OUTPUTS_SECTION = "Outputs a person reads"
+TABLE_RULE_CELL = re.compile(r"^:?-+:?$")
+
+
+def table_rows(body):
+    """Data rows of the Markdown tables in body, each a list of cell texts (header and rule lines dropped)."""
+    rows, previous_was_table = [], False
+    for line in (body or "").splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            previous_was_table = False
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        is_header = not previous_was_table
+        is_rule = all(TABLE_RULE_CELL.match(cell) for cell in cells)
+        previous_was_table = True
+        if not is_header and not is_rule:
+            rows.append(cells)
+    return rows
+
+
+def output_sample_problems(root, folder):
+    """Each output a person other than the developer reads needs a sample that its reader has confirmed.
+
+    The spec lists such outputs in a table: output, who reads it, language,
+    sample, confirmed by. The sample is a file that shows the output as its
+    reader will get it; the confirmation is the record that this person read
+    the sample itself. A row whose first cell is still the template's
+    placeholder (it starts with "<") is not a row.
+    """
+    body = section(read_worktree(root, folder + "/spec.md"), OUTPUTS_SECTION)
+    problems = []
+    for cells in table_rows(body):
+        if not cells or not cells[0] or cells[0].startswith("<"):
+            continue
+        output = cells[0]
+        sample = cells[3].strip("` ") if len(cells) > 3 else ""
+        confirmed = cells[4] if len(cells) > 4 else ""
+        if not sample or sample.startswith("<"):
+            problems.append("the output '%s' names no sample: its row in spec.md's '## %s' table needs a file of the "
+                            "change folder that shows the output as its reader will get it" % (output, OUTPUTS_SECTION))
+        elif read_worktree(root, "%s/%s" % (folder, sample)) is None and read_worktree(root, sample) is None:
+            problems.append("the sample of the output '%s' (%s) is not on disk" % (output, sample))
+        elif not confirmed or confirmed.startswith("<"):
+            problems.append("the sample of the output '%s' is not confirmed: its row needs '<who>, <date>' under "
+                            "'Confirmed by' — written once that person has read %s itself" % (output, sample))
+    return problems
+
+
+# ------------------------------------------------------------ handoff note
+
+HANDOFF_FILE = "handoff.md"
+
+
+def handoff_note(root, folder):
+    """Path of the note a paused session left in the change folder, or None."""
+    path = "%s/%s" % (folder, HANDOFF_FILE)
+    return path if read_worktree(root, path) is not None else None
+
+
 # ------------------------------------------------------------ template marks
 
 # Project files that start as a copy of a plugin template and carry the

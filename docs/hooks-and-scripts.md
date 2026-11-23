@@ -12,7 +12,7 @@ bash tools/selftest.sh
 
 | 钩子 | 事件 | 做什么 |
 |---|---|---|
-| 状态报告 | 会话开始 | 跑 `state.py --hook`，把结果放进上下文：阶段和其中的小步、档位、下一步、owner 该说的那句话（和终端里的那一行）、本地 `main` 是否落后于 origin、未决待办的行数和最早日期、还没被新 session 读过的小改动、项目里落后于插件模板的副本 |
+| 状态报告 | 会话开始 | 跑 `state.py --hook`，把结果放进上下文：阶段和其中的小步、档位、下一步、owner 该说的那句话（和终端里的那一行）、本地 `main` 是否落后于 origin、未决待办的行数和最早日期、还没被新 session 读过的小改动、项目里落后于插件模板的副本、改动文件夹里叫停时留下的 `handoff.md` |
 | 批准句 | 消息提交时 | `hook_user_prompt.py`：整条消息是五句批准句之一时，直接运行 `accept.py` 或 `merge.py`，把输出交给 agent，并给 owner 显示一段结果。见下面一节 |
 | Bash | 工具调用前 | 见下表 |
 | Edit / Write | 工具调用前 | 见下表 |
@@ -25,7 +25,7 @@ bash tools/selftest.sh
 |---|---|---|
 | `接受立项` | `accept.py setup` | 在 `setup` 分支上：整条分支进 `main`，切到 `main`，删 `setup`。在别的分支上：只提交项目级文件 |
 | `接受 intent` | `accept.py intent` | 只用于小改动：intent.md 提交进 `main`。正常档和高风险档拒绝，原因里指向「接受 spec」 |
-| `接受 spec` | `accept.py spec` | intent.md、spec.md、validation.md 一起提交进 `main` |
+| `接受 spec` | `accept.py spec` | intent.md、spec.md、validation.md 一起提交进 `main`；R-ID 没覆盖全、mock 没写确认人、给人读的输出的样例不在或没写确认人时拒绝 |
 | `批准 plan` | `accept.py plan` | 退路：plan mode 里接受之后标记没记上时用。plan.md 已在工作分支上提交、没有未提交的改动时，写批准标记并提交在工作分支上；`main` 不动 |
 | `确认合并` | `merge.py` | 收尾检查，合并（本地，或合并 PR），推送，切到 `main`，删分支 |
 
@@ -81,20 +81,20 @@ bash tools/selftest.sh
 
 | 脚本 | 谁运行 | 做什么 |
 |---|---|---|
-| `state.py` | 钩子、skill、人 | 从仓库推出当前阶段和小步（批准记录、批准标记、红测试、Approval log 里最新的评审行和验收行），报「项目未立项」、档位、下一步、owner 该说的那句话、分支是否已经合并、本地 `main` 是否落后、待办和未读小改动；项目的 `CLAUDE.md`、`REVIEW.md`、`.claude/flow.json` 的模板标记和插件模板的不一样（或没有标记）时报一行 |
+| `state.py` | 钩子、skill、人 | 从仓库推出当前阶段和小步（批准记录、批准标记、红测试、Approval log 里最新的评审行和验收行），报「项目未立项」、档位、下一步、改动文件夹里有没有叫停时留下的 `handoff.md`（有就报一行，让接手的 session 先读它）、owner 该说的那句话、分支是否已经合并、本地 `main` 是否落后、待办和未读小改动；项目的 `CLAUDE.md`、`REVIEW.md`、`.claude/flow.json` 的模板标记和插件模板的不一样（或没有标记）时报一行 |
 | `accept.py setup\|intent\|spec\|plan [--check]` | owner 说批准句（钩子运行），或在自己的终端；小改动的 `intent` 由 agent 调用并弹确认；`--check` 谁都可以跑 | `setup`、`intent`（只限小改动）、`spec`（intent、spec、validation 三份）：把批准文件提交进 `main`，再把 `main` 合回工作分支。先查：文件已在工作分支上提交、形状对、（`spec`）R-ID 全覆盖、文件夹里有 `mock.html` 时 spec 的「Mock」一节写了确认人。`plan`：退路，plan.md 已提交且没有未提交的改动时写批准标记，提交在工作分支上。`setup` 在 `setup` 分支上不同：整条分支进 `main`，列出每个进去的文件，然后切到 `main`、删 `setup`。`--check` 只查、只列，不改 |
 | `merge.py [--check]` | owner 说「确认合并」（钩子运行），或在自己的终端；小改动由 agent 调用并弹确认 | 先跑收尾检查；小改动碰高风险路径就拒绝。本地合并（小改动、不开 PR 的项目）：把 `main` 前移到分支头并推到 origin。走 PR（开 PR 的项目的正常档和高风险档）：核对 PR 的头，`gh pr merge --merge`，本地 `main` 快进到 `origin/main`。之后切到 `main`，删本地和远端分支。分支已经在 `main` 里时只做清理 |
 | `sync_main.py` | agent、人 | 本地 `main` 和 `origin/main` 对齐：origin 领先就快进本地，本地领先就补推，分叉就拒绝。不批准任何东西 |
-| `close_check.py` | skill、`merge.py` | 把下面五项检查，和 mock 确认、待办段、评审、验收四项一起跑：有 mock 的改动 spec 里写了确认人（并在 shape 一项里）；分支自己没有删、改写或新增「To do」段的行（和分支点上的 `main` 比，谁改的都算）；最新的评审行没有未处理的 Important、它指向的报告在盘上、它记的提交之后产品文件没有再变（已提交的和未提交的都算；正常档和高风险档要求是 reviewer 或新 session 的）；最新的验收行每道判断题都有答案、没有不通过、不判断的在 Leftovers 里 |
+| `close_check.py` | skill、`merge.py` | 把下面五项检查，和 mock 确认、输出样例的确认、待办段、handoff、评审、验收六项一起跑：有 mock 的改动 spec 里写了确认人，spec 里每份给人读的输出的样例文件在、写了确认人（这两项并在 shape 一项里）；分支自己没有删、改写或新增「To do」段的行（和分支点上的 `main` 比，谁改的都算）；改动文件夹里没有留着 `handoff.md`；最新的评审行没有未处理的 Important、它指向的报告在盘上、它记的提交之后产品文件没有再变（已提交的和未提交的都算；正常档和高风险档要求是 reviewer 或新 session 的）；最新的验收行每道判断题都有答案、没有不通过、不判断的在 Leftovers 里 |
 | `check_shape.py` | skill、`accept.py`、`close_check.py` | 每份产出物的必备标题在不在 |
 | `check_rid_coverage.py` | skill、`accept.py`、`close_check.py` | spec.md 的每个 R-ID 至少出现在 validation.md 的 §0、§1、§2 之一 |
 | `check_test_scope.py` | `close_check.py`、skill | 锁开始时已经存在、之后有变动的测试文件，最新一条 `test-release:` 记录的哈希都要等于文件现在的哈希（没有记录、或记录之后又变了，都拒绝）；新建的测试文件不要求，单独列出 |
 | `check_plan_drift.py` | `close_check.py` | 改动的产品文件都在 plan.md 的「Files that change」里（列表项和它的缩进续行里的反引号路径；方括号按字面） |
-| `check_leftovers.py` | `close_check.py` | 每条遗留项指向新 intent、「To do」的一行或「Known limits」的一行 |
+| `check_leftovers.py` | `close_check.py` | 每条遗留项指向新 intent、「To do」的一行或「Known limits」的一行；roadmap 的一行可以带几条遗留项的编号 |
 | `todo_add.py --who <名字> "<一句话>" ["<一句话>" …] [--who <另一个名字> "<一句话>" …]` | agent、人 | 往 `main` 上 roadmap 的「To do」段追加一行或多行，一次提交；每个 `--who` 管它后面的几句，到下一个 `--who` 为止 |
 | `record.py review\|validation\|test-release\|ruling` | agent | 往本改动 validation.md 的 Approval log 追加一行，时间和格式由脚本写。`review` 要求报告已在改动文件夹里、产品文件没有未提交的改动，并记下被评审的提交；`validation` 只收 §0 里有的判断题编号，并带上之前的答案；`test-release` 只收测试范围内的路径，并记下文件当时内容的哈希；`ruling` 要求写明核对过什么。这些行的解析也在这个脚本里 |
 | `roadmap_edit.py delete\|move --match "<文字>"` | agent 调用并弹确认；人 | 删除一行待办（`--reason fix-now`、`dismissed`，或 `fixed-directly --commit <哈希>`：不是产品文件、已经被这个提交改掉，提交要在当前分支或 `main` 的历史里），或移到计划阶段。待办行只从这里离开 |
-| `flowlib.py` | 其他脚本 | 共用的部分：读 `main`、读档位、plan 的批准标记、往 `main` 提交的唯一机制、「To do」段的前后比较、mock 的确认、模板标记 |
+| `flowlib.py` | 其他脚本 | 共用的部分：读 `main`、读档位、plan 的批准标记、往 `main` 提交的唯一机制、「To do」段的前后比较、mock 的确认、输出样例的确认、叫停时的 `handoff.md`、模板标记 |
 | `hook_pretool_bash.py`、`hook_pretool_write.py` | 钩子 | 上面两张表 |
 | `hook_plan_approved.py` | 钩子 | plan mode 里接受计划之后写 plan.md 和批准标记 |
 | `hook_user_prompt.py` | 钩子 | 批准句；拦掉内容是批准句的自发提示 |
@@ -110,10 +110,12 @@ bash tools/selftest.sh
 - **plan 的批准标记**：`specs/<文件夹>/plan-approved.txt`，一行：怎么批准的、时间、批准时 plan.md 的 sha256 前 12 位。
 - **报告**：`specs/<文件夹>/reports/` 下，code-reviewer、verifier、reviewer 各一份，按轮编号。
 - **小改动被新 session 读过**：`- <日期 时间> · small-change read (fresh session) · behaviour changed: yes|no`。
-- **遗留项**：`- **L1** <内容> → specs/<新文件夹>/intent.md`、`→ roadmap: to do`、`→ roadmap: known limits`；没有就写 `- None.`。指向 roadmap 的，roadmap 那一行末尾带 `(<文件夹名> L1)`。
+- **遗留项**：`- **L1** <内容> → specs/<新文件夹>/intent.md`、`→ roadmap: to do`、`→ roadmap: known limits`；没有就写 `- None.`。指向 roadmap 的，roadmap 那一行末尾带 `(<文件夹名> L1)`；同一条需求的几条合成 roadmap 的一行时，写 `(<文件夹名> L1, L4, L7)`。
 - **待办行**：`- <日期> · <谁提的> · <一句话>`。
 - **不记的发现**：validation.md 的「Not recorded」一节，一条一行（`- review-2 N3: <一句话>`），没有就写 `- None.`；脚本不读。
 - **mock 的确认**：spec.md「Mock」一节里一行 `- Confirmed by: <谁>, <日期>`；文件夹里有 `mock.html` 而这一行空着，「接受 spec」和收尾检查拒绝。
+- **输出样例的确认**：spec.md「Outputs a person reads」一节的表，一行一份给人读的输出，五列：Output、Who reads it、Language、Sample、Confirmed by。第一格还是模板占位（以 `<` 开头）的行不算。Sample 是改动文件夹里的文件名（或从仓库根起的路径）；文件不在，或 Confirmed by 空着，「接受 spec」和收尾检查拒绝。没有这类输出的改动删掉这一节。
+- **叫停时的交接**：`specs/<文件夹>/handoff.md`，owner 中途说停时 session 写的，固定四段（Where it stands、Open findings、Next, in order、Waiting on the owner）。状态脚本看到它报一行 `handoff: <路径>`；收尾检查拒绝还留着它的分支。
 - **模板标记**：`flow-template: <日期> <模板内容的 7 位短哈希>`——`CLAUDE.md`、`REVIEW.md` 里是一行 HTML 注释，`flow.json` 里是 `"//flow-template"` 键。算哈希时不算标记自己。模板的标记由 `tools/template_marks.py` 写；项目副本的标记是从模板原样抄来的，和模板的不一样就报。只有日期的旧标记、日期不存在的标记，都算不一致。
 
 ## 往 `main` 提交是怎么做的

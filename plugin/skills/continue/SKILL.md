@@ -14,6 +14,8 @@ when_to_use: 「继续」「接着做」「看看现在到哪一步了」「现�
 
 2. Tell the person, in their language, in three short lines: the stage, what is waiting and on whom, the next step. When the report has an "owner's approval" line, show the sentence the owner types (「…」) and say that it has to be a chat message of its own; the terminal line is the fallback.
 
+   When the report has a "handoff:" line, read that file before you load a skill: an earlier session paused midway and wrote where it stands, which findings are open and what comes next, in order.
+
 3. Load the skill of that stage and carry on with it:
 
    | The report says | Skill |

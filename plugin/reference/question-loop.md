@@ -30,13 +30,13 @@ The `setup-project` skill runs the same rounds, with three differences:
 ## What each stage asks
 - **Project setup:** who the product is for and what it does not do; the project-level decisions not yet locked, and how it is released (decided per project, no fixed form); what a few days of broken production cost; the planned stages.
 - **Plan (intent):** what, why, for whom, constraints, out of scope. Never how.
-- **Design (spec):** behaviour, edge cases, policy conflicts. For a UI change, questions are asked against the mock, not against prose.
+- **Design (spec):** behaviour, edge cases, policy conflicts. For a requirement over open input (free text, an outside page or file): the forms it must get right, and what catches the rest. For a UI change, questions are asked against the mock, not against prose; for an output a person reads, against its sample.
 
 ## When the owner is not the developer
 Her questions are few, in her words, in one batch, relayed by the developer. Technical questions are not hers.
 
 ## What the loop cannot catch
-- What is visible only on screen → the mock.
+- What is visible only on screen → the mock; what an output looks like to the person who reads it → its sample.
 - What only a reading of the code finds → codebase facts checked at a HEAD (the researcher), and plan approval.
 
 ## The two measures (counted in the pilot, see docs/measures.md)

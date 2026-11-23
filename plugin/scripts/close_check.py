@@ -3,13 +3,15 @@
 
 Runs, for the current branch's change folder:
   shape        every artifact of the tier has its sections; a change with a
-               mock names who confirmed it                                    (normal, high-risk)
+               mock names who confirmed it, and each output a person reads
+               has a sample its reader confirmed                              (normal, high-risk)
   R-ID         every R-ID of spec.md is cited in validation.md §0 / §1 / §2   (normal, high-risk)
   test scope   no unreleased change to an existing test file since the lock started
   plan drift   no changed product file missing from plan.md                    (normal, high-risk)
   leftovers    every leftover points to a new intent or to the roadmap
   to do        the branch itself did not remove, rewrite or add a line of the
                roadmap's To do section (whatever made the change)
+  handoff      no handoff.md of a paused session is left in the change folder
   review       the Approval log's latest review line has no open Important finding,
                its report is on disk, and no product file changed after the
                commit it records
@@ -79,6 +81,14 @@ def todo_problems(root):
     return problems
 
 
+def handoff_problems(root, folder):
+    """A paused session's note belongs to the stage it was written in; none of them is the merge."""
+    note = flowlib.handoff_note(root, folder)
+    if not note:
+        return []
+    return ["%s is still there: the stage it was written in is over — delete it in a commit that says so" % note]
+
+
 def validation_problems(root, folder):
     answers = record.latest_validation(flowlib.approval_log(root, folder))
     if answers is None:
@@ -110,6 +120,7 @@ def run(root, folder, config=None):
         shape += ["%s: %s" % (path, sentence) for sentence in check_shape.problems_in(kind, flowlib.read_worktree(root, path), tier)]
     if tier != "small":
         shape += flowlib.mock_review_problems(root, folder)
+        shape += flowlib.output_sample_problems(root, folder)
     results.append(("shape", shape))
     if tier != "small":
         results.append(("R-ID", check_rid_coverage.run(root, folder)))
@@ -118,6 +129,7 @@ def run(root, folder, config=None):
         results.append(("plan drift", check_plan_drift.run(root, folder, config)[0]))
     results.append(("leftovers", check_leftovers.run(root, folder)))
     results.append(("to do", todo_problems(root)))
+    results.append(("handoff", handoff_problems(root, folder)))
     results.append(("review", review_problems(root, folder, tier, config)))
     if tier != "small":
         results.append(("validation", validation_problems(root, folder)))

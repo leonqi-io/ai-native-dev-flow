@@ -5,7 +5,10 @@ Policies and skills read: <name at version or commit — or "none">
 
 ## Requirements
 <!-- One atomic, testable behaviour per ID. Cover the empty, error, first-use and returning states.
-Every R-ID has to be cited in validation.md §0, §1 or §2 — a script refuses the commit otherwise. -->
+Every R-ID has to be cited in validation.md §0, §1 or §2 — a script refuses the commit otherwise.
+A requirement over open input (it recognises or parses free text, an outside page or file) names three things:
+the forms it must get right (those in the real samples, and those named), what catches a form outside that list,
+and that a form outside the list found in review is a leftover. -->
 - **R1** <behaviour>
 - **R2** <behaviour>
 
@@ -34,6 +37,17 @@ requirement or a ruling) or the mock is corrected, and a person looks at the moc
 | Block | Before | In the mock | Meant by |
 |---|---|---|---|
 | <header / footer / a section> | <what it was> | <what it is now> | <R-ID or ruling — never empty> |
+
+## Outputs a person reads
+<!-- Delete this section when the change makes no output that a person other than the developer reads.
+One row per such output: a report, a listing, an email, a message. The sample is a file in this folder, written
+before any code, that shows the output as its reader will get it — its language, its sections, its columns — with
+values of the kind the real data holds and no value shown as it is stored. "Confirmed by" stays empty until that
+person (or the owner for them) has read the sample itself; the spec is not accepted with a row whose sample is
+missing or not confirmed. After that the output's language and layout are ruled. -->
+| Output | Who reads it | Language | Sample | Confirmed by |
+|---|---|---|---|---|
+| <the report / listing / message> | <who — not always the one who runs the command> | <language> | `<file in this folder>` | |
 
 ## Fact values
 <!-- Every value the product will show or store that comes from outside the code — a name, a price, an address,

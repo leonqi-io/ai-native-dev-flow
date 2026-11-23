@@ -14,10 +14,12 @@ when_to_use: 「验收过了，收尾准备合并」「收尾」「准备合并�
    - accepted as it is → `**L3** … → roadmap: known limits`;
    - nothing left → `- None.`
 
+   **A roadmap line is a pointer, one per requirement.** The leftovers of the same requirement (or of the same command) share one to-do line: one sentence that names the requirement and what kind of thing is left, ending with all their IDs — `(<folder name> L2, L7, L10)`. The detail stays in `validation.md`'s Leftovers; do not copy it into the roadmap. Every line the roadmap gains is one the owner has to dispose of one day.
+
    Add all the to-do lines in **one** call — one commit on `main`, one push:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/todo_add.py" --who "review loop" "<one sentence> (<folder name> L2)" "<one sentence> (<folder name> L4)" --who "<owner>" "<one sentence> (<folder name> L5)"
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/todo_add.py" --who "review loop" "<one sentence> (<folder name> L2, L7, L10)" "<one sentence> (<folder name> L4)" --who "<owner>" "<one sentence> (<folder name> L5)"
    ```
 
    Each `--who` names who raised the sentences after it.
@@ -25,7 +27,7 @@ when_to_use: 「验收过了，收尾准备合并」「收尾」「准备合并�
    Then bring `main` into this branch before you touch the roadmap here: `git merge main`.
 
 2. **Roadmap, on this branch.**
-   - Known limits: add `- <one sentence> (<folder name> L3)` for each such leftover.
+   - Known limits: add `- <one sentence> (<folder name> L3)` for each such leftover, those of one requirement on one line.
    - The `Status:` line says where the work stands **after this merge** and what comes next — no "waiting for the merge".
    - Look at the To do lines: what this change settles can be disposed of now — the owner confirms each with one click:
 
@@ -43,7 +45,7 @@ when_to_use: 「验收过了，收尾准备合并」「收尾」「准备合并�
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/close_check.py"
    ```
 
-   It checks: the shape of every file (and that a mock is confirmed), R-ID coverage, no change to an existing test file since the red commit that its latest release line does not cover, no changed product file missing from the plan, every leftover's pointer, no To do line of the roadmap changed by this branch itself, the reviewer's latest line with no Important open, its report on disk and no product change after the commit it records, and the latest validation line (every judgment answered, none failed, each one not judged named in Leftovers).
+   It checks: the shape of every file (and that a mock, and the sample of each output a person reads, is confirmed), R-ID coverage, no change to an existing test file since the red commit that its latest release line does not cover, no changed product file missing from the plan, every leftover's pointer, no To do line of the roadmap changed by this branch itself, no `handoff.md` of a paused session left in the folder, the reviewer's latest line with no Important open, its report on disk and no product change after the commit it records, and the latest validation line (every judgment answered, none failed, each one not judged named in Leftovers).
 
    **When the check refuses because of its own fault** (it misreads a file that is right): stop and tell the owner which check, why you think the check is wrong, and how you would work around it. Touch an approved file only after he agrees, and record his ruling with `record.py ruling`.
 
